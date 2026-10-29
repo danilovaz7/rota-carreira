@@ -57,6 +57,7 @@ export function isExcludedJob(job: UnifiedJob): boolean {
 export function scoreJobForProfile(
   job: UnifiedJob,
   profile: JobProfile,
+  now: number,
 ): ScoredJob | null {
   if (isExcludedJob(job)) return null;
 
@@ -101,33 +102,82 @@ export function scoreJobForProfile(
     reasons.push(`Skills: ${matchedLabels.join(", ")}`);
   }
 
-  if (/\b(remoto|remote|home office|anywhere)\b/.test(blob)) {
-    score += 8;
+  const workplace = resolveWorkplace(job, blob);
+  const location = normalize(job.location);
+
+  if (workplace === "remote") {
+    if (job.source !== "LinkedIn" && !REMOTE_OPEN_TO_BRAZIL_RE.test(location)) {
+      return null;
+    }
     reasons.push("Remoto");
-  }
-  if (/\b(brasil|brazil|santos|s[aã]o paulo|\bsp\b)\b/.test(blob)) {
-    score += 10;
-    reasons.push("Brasil/SP");
+  } else {
+    if (!SP_REGION_RE.test(location)) return null;
+    score += 8;
+    reasons.push(
+      SANTOS_REGION_RE.test(location) ? "Presencial/híbrido · Baixada Santista" : "Presencial/híbrido · Grande SP",
+    );
   }
 
-  if (job.source === "LinkedIn") {
-    score += 5;
-    reasons.push("LinkedIn BR");
+  const ageDays = daysSince(job.publishedAt, now);
+  if (ageDays !== null && ageDays > MAX_AGE_DAYS) return null;
+  const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
+  if (ageDays !== null) {
+    if (ageDays <= 1) score += 15;
+    else if (ageDays <= 3) score += 10;
+    else if (ageDays <= 7) score += 5;
   }
+  if (isNew) reasons.unshift("Vaga nova");
 
   if (score < 28) return null;
 
-  return { ...job, score: Math.min(100, score), reasons };
+  return {
+    ...job,
+    score: Math.min(100, score),
+    reasons,
+    workplace,
+    ageDays,
+    isNew,
+  };
+}
+
+const MAX_AGE_DAYS = 21;
+
+/** Grande São Paulo + Baixada Santista (sem acentos, pós-normalize). */
+const SANTOS_REGION_RE =
+  /\b(santos|sao vicente|guaruja|praia grande|cubatao|bertioga|mongagua|itanhaem|peruibe|baixada santista)\b/;
+const SP_REGION_RE = new RegExp(
+  [
+    SANTOS_REGION_RE.source,
+    /\b(sao paulo, sao paulo|greater sao paulo|grande sao paulo|sao paulo, sp|guarulhos|osasco|barueri|alphaville|santana de parnaiba|santo andre|sao bernardo|sao caetano|diadema|maua|ribeirao pires|cotia|taboao da serra|embu|itapecerica|carapicuiba|jandira|itapevi|mogi das cruzes|suzano|aruja|itaquaquecetuba|poa|ferraz de vasconcelos|caieiras|franco da rocha|cajamar)\b/.source,
+  ].join("|"),
+);
+
+const REMOTE_OPEN_TO_BRAZIL_RE =
+  /\b(brasil|brazil|latam|latin america|south america|americas|worldwide|anywhere|global)\b|^remote$|^$/;
+
+function resolveWorkplace(job: UnifiedJob, blob: string): "remote" | "onsite" {
+  if (job.workplace === "remote") return "remote";
+  if (/\b(remoto|remote|home office)\b/.test(normalize(job.title))) return "remote";
+  if (job.workplace === "onsite") return "onsite";
+  return /\b(remoto|remote|home office|100% remoto)\b/.test(blob) ? "remote" : "onsite";
+}
+
+function daysSince(iso: string, now: number): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((now - t) / 86_400_000));
 }
 
 export function rankJobsForProfile(
   jobs: UnifiedJob[],
   profile: JobProfile,
   limit = 40,
+  now = Date.now(),
 ): ScoredJob[] {
   const scored: ScoredJob[] = [];
   for (const job of jobs) {
-    const s = scoreJobForProfile(job, profile);
+    const s = scoreJobForProfile(job, profile, now);
     if (s) scored.push(s);
   }
   scored.sort((a, b) => b.score - a.score);

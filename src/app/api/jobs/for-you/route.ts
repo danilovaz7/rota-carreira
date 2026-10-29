@@ -5,7 +5,7 @@ import { DEFAULT_PROFILE, type JobProfile } from "@/types/job-hunt";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(Number(searchParams.get("limit") ?? "35") || 35, 50);
+  const limit = Math.min(Number(searchParams.get("limit") ?? "50") || 50, 60);
 
   const profile: JobProfile = {
     ...DEFAULT_PROFILE,
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       profileName: profile.fullName,
       filters: {
-        exclude: "estágio / internship",
+        exclude: "estágio / internship; presencial fora de SP e Santos",
         focus: "trainee e júnior (dev)",
         stretch: "skills levemente expandidas (React↔Next, Node↔Express, etc.)",
       },

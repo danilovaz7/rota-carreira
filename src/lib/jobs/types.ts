@@ -5,6 +5,8 @@ export type JobSource =
   | "Arbeitnow"
   | "Jobicy";
 
+export type Workplace = "remote" | "onsite" | "unknown";
+
 export type UnifiedJob = {
   id: string;
   source: JobSource;
@@ -15,11 +17,16 @@ export type UnifiedJob = {
   tags: string[];
   publishedAt: string;
   description?: string;
+  workplace?: Workplace;
+  isNew?: boolean;
 };
 
 export type ScoredJob = UnifiedJob & {
   score: number;
   reasons: string[];
+  workplace: Workplace;
+  ageDays: number | null;
+  isNew: boolean;
 };
 
 export function jobMatchesSearch(job: UnifiedJob, search: string): boolean {

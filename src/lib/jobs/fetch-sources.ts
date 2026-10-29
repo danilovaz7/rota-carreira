@@ -35,6 +35,7 @@ export async function fetchRemotiveJobs(): Promise<UnifiedJob[]> {
     return (data.jobs ?? []).map((j) => ({
       id: `remotive-${j.id}`,
       source: "Remotive" as const,
+      workplace: "remote" as const,
       title: j.title,
       company: j.company_name,
       url: j.url,
@@ -70,6 +71,7 @@ export async function fetchRemoteOkJobs(): Promise<UnifiedJob[]> {
       .map((j) => ({
         id: `remoteok-${j.id}`,
         source: "RemoteOK" as const,
+        workplace: "remote" as const,
         title: j.position!,
         company: j.company ?? "—",
         url: j.url!.startsWith("http") ? j.url! : `https://remoteok.com${j.url}`,
@@ -103,6 +105,7 @@ export async function fetchArbeitnowJobs(): Promise<UnifiedJob[]> {
     return (data.data ?? []).map((j) => ({
       id: `arbeitnow-${j.slug}`,
       source: "Arbeitnow" as const,
+      workplace: j.remote ? ("remote" as const) : ("onsite" as const),
       title: j.title,
       company: j.company_name,
       url: j.url,
@@ -145,6 +148,7 @@ export async function fetchJobicyJobs(): Promise<UnifiedJob[]> {
         jobs.push({
           id: `jobicy-${j.id}`,
           source: "Jobicy",
+          workplace: "remote",
           title: j.jobTitle,
           company: j.companyName,
           url: j.url,
