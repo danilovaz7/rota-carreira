@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
 
@@ -71,7 +72,7 @@ type GreenhouseJob = {
 };
 
 async function fetchGreenhouseBoard(token: string, company: string): Promise<UnifiedJob[]> {
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://boards-api.greenhouse.io/v1/boards/${token}/jobs?content=true`,
     { headers: UA },
   );
@@ -107,7 +108,7 @@ type LeverPosting = {
 };
 
 async function fetchLeverBoard(token: string, company: string): Promise<UnifiedJob[]> {
-  const res = await fetch(`https://api.lever.co/v0/postings/${token}?mode=json`, {
+  const res = await fetchWithTimeout(`https://api.lever.co/v0/postings/${token}?mode=json`, {
     headers: UA,
   });
   if (!res.ok) return [];
@@ -161,7 +162,7 @@ export async function fetchMercadoLivreJobs(): Promise<UnifiedJob[]> {
         start: String(start),
         num: "10",
       });
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://mercadolibre.eightfold.ai/api/pcsx/search?${params}`,
         { headers: { ...UA, Accept: "application/json" } },
       );
@@ -247,7 +248,7 @@ export async function fetchGupyJobs(): Promise<UnifiedJob[]> {
     const pages = GUPY_TERMS.flatMap((term) => [0, 100, 200].map((offset) => ({ term, offset })));
     const results = await mapLimit(pages, 5, async ({ term, offset }) => {
       const params = new URLSearchParams({ jobName: term, limit: "100", offset: String(offset) });
-      const res = await fetch(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
+      const res = await fetchWithTimeout(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
         headers: { ...UA, Accept: "application/json" },
       });
       if (!res.ok) return [];

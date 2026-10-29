@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
 import type { UnifiedJob } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
 import { fetchLinkedInBrazilJobs } from "@/lib/jobs/fetch-linkedin-guest";
@@ -18,7 +19,7 @@ async function cached(source: string, loader: () => Promise<UnifiedJob[]>) {
 
 export async function fetchRemotiveJobs(): Promise<UnifiedJob[]> {
   return cached("remotive", async () => {
-    const res = await fetch("https://remotive.com/api/remote-jobs", {
+    const res = await fetchWithTimeout("https://remotive.com/api/remote-jobs", {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) throw new Error(`Remotive ${res.status}`);
@@ -49,7 +50,7 @@ export async function fetchRemotiveJobs(): Promise<UnifiedJob[]> {
 
 export async function fetchRemoteOkJobs(): Promise<UnifiedJob[]> {
   return cached("remoteok", async () => {
-    const res = await fetch("https://remoteok.com/api", {
+    const res = await fetchWithTimeout("https://remoteok.com/api", {
       headers: {
         Accept: "application/json",
         "User-Agent": "CentralEmprego/1.0 (job search; link-back to remoteok.com)",
@@ -86,7 +87,7 @@ export async function fetchRemoteOkJobs(): Promise<UnifiedJob[]> {
 
 export async function fetchArbeitnowJobs(): Promise<UnifiedJob[]> {
   return cached("arbeitnow", async () => {
-    const res = await fetch("https://www.arbeitnow.com/api/job-board-api", {
+    const res = await fetchWithTimeout("https://www.arbeitnow.com/api/job-board-api", {
       headers: { Accept: "application/json" },
     });
     if (!res.ok) throw new Error(`Arbeitnow ${res.status}`);
@@ -125,7 +126,7 @@ export async function fetchJobicyJobs(): Promise<UnifiedJob[]> {
     for (let page = 0; page < 3; page++) {
       const params = new URLSearchParams({ count: "50" });
       if (cursor) params.set("cursor", cursor);
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://jobicy.com/api/v2/remote-jobs?${params}`,
         { headers: { Accept: "application/json" } },
       );
@@ -180,15 +181,18 @@ export async function fetchAllUnifiedJobs(): Promise<UnifiedJob[]> {
   return jobs;
 }
 
-export async function fetchAllJobsIncludingLinkedIn(): Promise<UnifiedJob[]> {
-  const results = await Promise.allSettled([
-    fetchLinkedInBrazilJobs(),
-    fetchAllCompanySiteJobs(),
-    fetchAllUnifiedJobs(),
+const SOURCE_DEADLINE_MS = 25_000;
+
+function withDeadline(promise: Promise<UnifiedJob[]>): Promise<UnifiedJob[]> {
+  return Promise.race([
+    promise.catch(() => []),
+    new Promise<UnifiedJob[]>((resolve) => setTimeout(() => resolve([]), SOURCE_DEADLINE_MS)),
   ]);
-  const jobs: UnifiedJob[] = [];
-  for (const r of results) {
-    if (r.status === "fulfilled") jobs.push(...r.value);
-  }
-  return jobs;
+}
+
+export async function fetchAllJobsIncludingLinkedIn(): Promise<UnifiedJob[]> {
+  const results = await Promise.all(
+    [fetchLinkedInBrazilJobs(), fetchAllCompanySiteJobs(), fetchAllUnifiedJobs()].map(withDeadline),
+  );
+  return results.flat();
 }

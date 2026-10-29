@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
 import * as cheerio from "cheerio";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 
@@ -42,7 +43,7 @@ async function fetchSearchPage(
     sortBy: "DD",
     start: String(start),
   });
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?${params}`,
     {
       headers: {
@@ -50,6 +51,7 @@ async function fetchSearchPage(
         Accept: "text/html",
       },
     },
+    8_000,
   );
   if (!res.ok) throw new Error(`LinkedIn guest ${res.status}`);
   return res.text();
