@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -22,6 +22,8 @@ import { DiscoverJobs } from "@/components/discover-jobs";
 import { ApplicationTracker } from "@/components/application-tracker";
 import { PrepareApply } from "@/components/prepare-apply";
 import { ForYouJobs } from "@/components/for-you-jobs";
+import { SyncStatusPill } from "@/components/sync-status-pill";
+import { useAutoSync } from "@/hooks/use-auto-sync";
 
 const TABS: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "para-voce", label: "Para você", icon: Sparkles },
@@ -42,6 +44,17 @@ export function JobHuntApp() {
     setProfile(loadProfile());
     setApplications(loadApplications());
   }, []);
+
+  const reloadFromStorage = useCallback(() => {
+    setProfile(loadProfile());
+    setApplications(loadApplications());
+  }, []);
+  const changeKey = useMemo(() => [profile, applications], [profile, applications]);
+  const sync = useAutoSync({
+    ready: profile !== null,
+    changeKey,
+    onRemoteApplied: reloadFromStorage,
+  });
 
   const [appliedToday, setAppliedToday] = useState(0);
 
@@ -80,9 +93,12 @@ export function JobHuntApp() {
           className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-white/10 blur-2xl"
         />
         <div className="relative space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-indigo-100">
-            <BriefcaseBusiness className="size-4" />
-            Central de Emprego
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-indigo-100">
+              <BriefcaseBusiness className="size-4" />
+              Central de Emprego
+            </div>
+            <SyncStatusPill sync={sync} onOpenSettings={() => setTab("perfil")} />
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -220,10 +236,8 @@ export function JobHuntApp() {
           <SyncPanel
             profile={profile}
             applications={applications}
-            onSynced={() => {
-              setProfile(loadProfile());
-              setApplications(loadApplications());
-            }}
+            sync={sync}
+            onSynced={reloadFromStorage}
           />
           <ProfileForm profile={profile} onProfileChange={setProfile} />
         </TabsContent>

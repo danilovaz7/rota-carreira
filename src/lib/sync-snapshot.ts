@@ -14,8 +14,14 @@ const SYNC_META_KEY = "job-hunt-sync-meta-v1";
 
 export type SyncMeta = {
   code: string;
+  /** Fica só neste navegador; sem ele o sync automático não consegue criptografar. */
+  pin?: string;
+  auto?: boolean;
+  /** `updatedAt` do último snapshot que este aparelho e a nuvem tinham em comum. */
+  lastSyncedAt?: string;
   lastPullAt?: string;
   lastPushAt?: string;
+  lastError?: string;
 };
 
 export function buildSnapshot(
