@@ -11,7 +11,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Application, JobProfile } from "@/types/job-hunt";
+import type { Application, ApplicationStatus, JobProfile } from "@/types/job-hunt";
 import type { ScoredJob } from "@/lib/jobs/types";
 import { newApplicationId, saveApplications } from "@/lib/storage";
 
@@ -20,6 +20,8 @@ type Props = {
   applications: Application[];
   onApplicationsChange: (apps: Application[]) => void;
 };
+
+const SENT_STATUSES: ApplicationStatus[] = ["applied", "interview", "offer", "rejected"];
 
 type WorkplaceFilter = "all" | "remote" | "onsite";
 type SortMode = "fit" | "newest";
@@ -56,10 +58,25 @@ export function ForYouJobs({
   const [workplaceFilter, setWorkplaceFilter] = useState<WorkplaceFilter>("all");
   const [onlyNew, setOnlyNew] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("fit");
+  const [showSent, setShowSent] = useState(false);
+
+  const sentUrls = useMemo(
+    () =>
+      new Set(
+        applications.filter((a) => SENT_STATUSES.includes(a.status)).map((a) => a.url),
+      ),
+    [applications],
+  );
+
+  const hiddenSentCount = useMemo(
+    () => (data?.jobs ?? []).filter((j) => sentUrls.has(j.url)).length,
+    [data, sentUrls],
+  );
 
   const visibleJobs = useMemo(() => {
     const jobs = (data?.jobs ?? []).filter(
       (j) =>
+        (showSent || !sentUrls.has(j.url)) &&
         (workplaceFilter === "all" || j.workplace === workplaceFilter) &&
         (!onlyNew || j.isNew),
     );
@@ -69,7 +86,7 @@ export function ForYouJobs({
       );
     }
     return jobs;
-  }, [data, workplaceFilter, onlyNew, sortMode]);
+  }, [data, workplaceFilter, onlyNew, sortMode, showSent, sentUrls]);
 
   const newCount = useMemo(
     () => (data?.jobs ?? []).filter((j) => j.isNew).length,
@@ -120,9 +137,48 @@ export function ForYouJobs({
       jobDescription: job.description ?? "",
       createdAt: new Date().toISOString(),
     };
-    const next = [app, ...applications];
+    persist([app, ...applications]);
+  }
+
+  function persist(next: Application[]) {
     onApplicationsChange(next);
     saveApplications(next);
+  }
+
+  function markSent(job: ScoredJob) {
+    const now = new Date().toISOString();
+    const existing = applications.find((a) => a.url === job.url);
+    if (existing) {
+      persist(
+        applications.map((a) =>
+          a.id === existing.id ? { ...a, status: "applied", appliedAt: a.appliedAt ?? now } : a,
+        ),
+      );
+      return;
+    }
+    persist([
+      {
+        id: newApplicationId(),
+        company: job.company,
+        title: job.title,
+        url: job.url,
+        source: job.source,
+        status: "applied",
+        notes: `Match ${job.score}%`,
+        jobDescription: job.description ?? "",
+        createdAt: now,
+        appliedAt: now,
+      },
+      ...applications,
+    ]);
+  }
+
+  function undoSent(job: ScoredJob) {
+    persist(
+      applications.map((a) =>
+        a.url === job.url ? { ...a, status: "saved", appliedAt: undefined } : a,
+      ),
+    );
   }
 
   return (
@@ -176,6 +232,18 @@ export function ForYouJobs({
           >
             Ordenar: {sortMode === "fit" ? "melhor fit" : "mais novas"}
           </Button>
+          {hiddenSentCount > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowSent((v) => !v)}
+            >
+              {showSent
+                ? "Esconder enviadas"
+                : `Mostrar enviadas (${hiddenSentCount})`}
+            </Button>
+          )}
         </div>
 
         {error && (
@@ -206,6 +274,7 @@ export function ForYouJobs({
             >
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
+                  {sentUrls.has(job.url) && <Badge variant="secondary">Enviada</Badge>}
                   {job.isNew && <Badge variant="destructive">Nova</Badge>}
                   <Badge className="tabular-nums">{job.score}% fit</Badge>
                   <Badge variant="outline">
@@ -234,15 +303,36 @@ export function ForYouJobs({
                 >
                   Abrir vaga
                 </a>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={isSaved(job.url)}
-                  onClick={() => saveJob(job)}
-                >
-                  {isSaved(job.url) ? "Salva" : "Salvar"}
-                </Button>
+                {sentUrls.has(job.url) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => undoSent(job)}
+                  >
+                    Desfazer envio
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => markSent(job)}
+                    >
+                      Já enviei
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isSaved(job.url)}
+                      onClick={() => saveJob(job)}
+                    >
+                      {isSaved(job.url) ? "Salva" : "Salvar para depois"}
+                    </Button>
+                  </>
+                )}
               </div>
             </li>
           ))}
