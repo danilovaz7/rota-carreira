@@ -42,6 +42,22 @@ const WORKPLACE_FILTERS: { value: WorkplaceFilter; label: string }[] = [
   { value: "onsite", label: "Presencial · SP/Santos" },
 ];
 
+type OriginFilter = "all" | "linkedin" | "gupy" | "company" | "remote-boards";
+
+const ORIGIN_LABELS: Record<Exclude<OriginFilter, "all">, string> = {
+  linkedin: "LinkedIn",
+  gupy: "Gupy",
+  company: "Sites de empresas",
+  "remote-boards": "Sites remotos",
+};
+
+function originOf(job: ScoredJob): Exclude<OriginFilter, "all"> {
+  if (job.source === "LinkedIn") return "linkedin";
+  if (job.source === "Gupy") return "gupy";
+  if (job.source === "Site da empresa") return "company";
+  return "remote-boards";
+}
+
 function sourceLabel(job: ScoredJob): string {
   if (job.source === "Gupy") return "Site da empresa · Gupy";
   return job.source;
@@ -140,6 +156,7 @@ export function ForYouJobs({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workplaceFilter, setWorkplaceFilter] = useState<WorkplaceFilter>("all");
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const [onlyNew, setOnlyNew] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("fit");
   const [showSent, setShowSent] = useState(false);
@@ -162,6 +179,7 @@ export function ForYouJobs({
       (j) =>
         (showSent || !sentUrls.has(j.url)) &&
         (workplaceFilter === "all" || j.workplace === workplaceFilter) &&
+        (originFilter === "all" || originOf(j) === originFilter) &&
         (!onlyNew || j.isNew),
     );
     if (sortMode === "newest") {
@@ -170,7 +188,17 @@ export function ForYouJobs({
       );
     }
     return jobs;
-  }, [data, workplaceFilter, onlyNew, sortMode, showSent, sentUrls]);
+  }, [data, workplaceFilter, originFilter, onlyNew, sortMode, showSent, sentUrls]);
+
+  const originCounts = useMemo(() => {
+    const counts: Partial<Record<Exclude<OriginFilter, "all">, number>> = {};
+    for (const j of data?.jobs ?? []) {
+      if (!showSent && sentUrls.has(j.url)) continue;
+      const o = originOf(j);
+      counts[o] = (counts[o] ?? 0) + 1;
+    }
+    return counts;
+  }, [data, showSent, sentUrls]);
 
   const newCount = useMemo(
     () => (data?.jobs ?? []).filter((j) => j.isNew).length,
@@ -182,7 +210,7 @@ export function ForYouJobs({
     setError(null);
     try {
       const params = new URLSearchParams({
-        limit: "50",
+        limit: "80",
         headline: profile.headline,
         skills: profile.skills,
         keywords: profile.keywords,
@@ -328,6 +356,31 @@ export function ForYouJobs({
             </Chip>
           )}
         </div>
+        {data && !loading && (
+          <div className="scrollbar-none mt-2 flex items-center gap-2 overflow-x-auto">
+            <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Origem
+            </span>
+            <Chip active={originFilter === "all"} onClick={() => setOriginFilter("all")}>
+              Todas
+            </Chip>
+            {(Object.keys(ORIGIN_LABELS) as Exclude<OriginFilter, "all">[])
+              .filter((o) => originCounts[o])
+              .map((o) => (
+                <Chip key={o} active={originFilter === o} onClick={() => setOriginFilter(o)}>
+                  {ORIGIN_LABELS[o]}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-xs tabular-nums",
+                      originFilter === o ? "bg-white/20" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {originCounts[o]}
+                  </span>
+                </Chip>
+              ))}
+          </div>
+        )}
       </div>
 
       {error && (
