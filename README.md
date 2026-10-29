@@ -28,4 +28,11 @@ Abra [http://localhost:43123](http://localhost:43123).
 
 ## Dados
 
-Tudo fica no `localStorage` do navegador (sem login, sem servidor de banco).
+Por padrão, perfil e candidaturas ficam no **localStorage** de cada aparelho.
+
+### Celular + PC no mesmo link
+
+Na aba **Perfil → Usar no celular e no PC**:
+
+1. **Copiar backup / Importar** — funciona em qualquer deploy (mande o texto para você no WhatsApp e cole no outro aparelho).
+2. **Sync na nuvem (código + PIN)** — opcional; exige [Upstash Redis](https://upstash.com) na Vercel (`UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`). O PIN criptografa os dados no navegador antes de enviar.

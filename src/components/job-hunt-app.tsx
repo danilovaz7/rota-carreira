@@ -16,6 +16,7 @@ import {
 import type { Application, JobProfile } from "@/types/job-hunt";
 import { loadApplications, loadProfile } from "@/lib/storage";
 import { ProfileForm } from "@/components/profile-form";
+import { SyncPanel } from "@/components/sync-panel";
 import { LinkedInHub } from "@/components/linkedin-hub";
 import { DiscoverJobs } from "@/components/discover-jobs";
 import { ApplicationTracker } from "@/components/application-tracker";
@@ -215,7 +216,15 @@ export function JobHuntApp() {
           />
         </TabsContent>
 
-        <TabsContent value="perfil" className="mt-4">
+        <TabsContent value="perfil" className="mt-4 space-y-6">
+          <SyncPanel
+            profile={profile}
+            applications={applications}
+            onSynced={() => {
+              setProfile(loadProfile());
+              setApplications(loadApplications());
+            }}
+          />
           <ProfileForm profile={profile} onProfileChange={setProfile} />
         </TabsContent>
       </Tabs>
