@@ -2,14 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ArrowUpDown,
+  Bookmark,
+  BookmarkCheck,
+  Building2,
+  Check,
+  Clock,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  MapPin,
+  RefreshCw,
+  SearchX,
+  Sparkles,
+  Undo2,
+  Wifi,
+} from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Application, ApplicationStatus, JobProfile } from "@/types/job-hunt";
 import type { ScoredJob } from "@/lib/jobs/types";
@@ -30,19 +39,88 @@ type SortMode = "fit" | "newest";
 const WORKPLACE_FILTERS: { value: WorkplaceFilter; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "remote", label: "Remoto" },
-  { value: "onsite", label: "Presencial/híbrido (SP e Santos)" },
+  { value: "onsite", label: "Presencial · SP/Santos" },
 ];
 
 function sourceLabel(job: ScoredJob): string {
-  if (job.source === "Gupy") return "Site da empresa (Gupy)";
+  if (job.source === "Gupy") return "Site da empresa · Gupy";
   return job.source;
 }
 
 function formatAge(ageDays: number | null): string {
   if (ageDays === null) return "Data não informada";
-  if (ageDays === 0) return "Publicada hoje";
-  if (ageDays === 1) return "Publicada ontem";
-  return `Publicada há ${ageDays} dias`;
+  if (ageDays === 0) return "Hoje";
+  if (ageDays === 1) return "Ontem";
+  return `Há ${ageDays} dias`;
+}
+
+const AVATAR_COLORS = [
+  "bg-indigo-100 text-indigo-700",
+  "bg-violet-100 text-violet-700",
+  "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-teal-100 text-teal-700",
+];
+
+function avatarFor(company: string) {
+  const clean = company.replace(/[^\p{L}\p{N} ]/gu, "").trim() || "?";
+  const initials = clean
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+  let hash = 0;
+  for (const ch of company) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return { initials, color: AVATAR_COLORS[hash % AVATAR_COLORS.length] };
+}
+
+function fitStyle(score: number) {
+  if (score >= 70) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+  if (score >= 50) return "bg-indigo-50 text-indigo-700 ring-indigo-200";
+  return "bg-slate-50 text-slate-600 ring-slate-200";
+}
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+          : "border-border bg-card text-foreground hover:bg-muted",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function JobSkeleton() {
+  return (
+    <li className="animate-pulse rounded-2xl border bg-card p-4">
+      <div className="flex gap-3">
+        <div className="size-11 shrink-0 rounded-xl bg-muted" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-3/4 rounded bg-muted" />
+          <div className="h-3 w-1/2 rounded bg-muted" />
+          <div className="h-3 w-1/3 rounded bg-muted" />
+        </div>
+      </div>
+    </li>
+  );
 }
 
 type ApiResponse = {
@@ -188,172 +266,257 @@ export function ForYouJobs({
   }
 
   return (
-    <Card className="border-primary/20 shadow-sm">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-xl">Vagas para você</CardTitle>
-        <CardDescription>
-          Links encontrados automaticamente no LinkedIn e nos sites de
-          carreira das empresas, sem estágio, focados em trainee/júnior e no
-          seu currículo. Remoto vale de qualquer lugar;
-          presencial e híbrido só em São Paulo, Santos e região. Vagas da
-          última semana, com as mais novas em destaque.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <details className="rounded-lg border bg-muted/30 p-3 text-sm">
-          <summary className="cursor-pointer font-medium">
-            Sites de empresas monitorados
-          </summary>
-          <p className="mt-2 text-muted-foreground">
-            {MONITORED_COMPANIES.join(" · ")}
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight">Vagas para você</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Trainee e júnior que combinam com seu currículo, do LinkedIn e dos
+            sites das empresas. Remoto de qualquer lugar; presencial só em SP,
+            Santos e região.
           </p>
-        </details>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => void load()} disabled={loading}>
-            {loading ? "Procurando vagas…" : "Atualizar lista"}
-          </Button>
-          {data && !loading && (
-            <span className="text-xs text-muted-foreground">
-              {data.count} links · {newCount} novas · {data.scanned} analisadas
-            </span>
-          )}
         </div>
+        <Button type="button" onClick={() => void load()} disabled={loading} className="gap-2">
+          <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+          {loading ? "Buscando…" : "Atualizar"}
+        </Button>
+      </div>
 
-        <div className="flex flex-wrap gap-2">
+      {data && !loading && (
+        <div className="grid grid-cols-3 gap-2 sm:max-w-md">
+          {[
+            { label: "Vagas", value: data.count - hiddenSentCount },
+            { label: "Novas", value: newCount },
+            { label: "Analisadas", value: data.scanned.toLocaleString("pt-BR") },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border bg-card px-3 py-2 text-center shadow-xs">
+              <p className="text-lg font-semibold tabular-nums">{s.value}</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="sticky top-0 z-10 -mx-4 bg-background/85 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:px-0">
+        <div className="scrollbar-none flex gap-2 overflow-x-auto">
           {WORKPLACE_FILTERS.map((f) => (
-            <Button
+            <Chip
               key={f.value}
-              type="button"
-              size="sm"
-              variant={workplaceFilter === f.value ? "default" : "outline"}
+              active={workplaceFilter === f.value}
               onClick={() => setWorkplaceFilter(f.value)}
             >
+              {f.value === "remote" && <Wifi className="size-3.5" />}
+              {f.value === "onsite" && <MapPin className="size-3.5" />}
               {f.label}
-            </Button>
+            </Chip>
           ))}
-          <Button
-            type="button"
-            size="sm"
-            variant={onlyNew ? "default" : "outline"}
-            onClick={() => setOnlyNew((v) => !v)}
-          >
-            Só novas (até 2 dias)
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
+          <Chip active={onlyNew} onClick={() => setOnlyNew((v) => !v)}>
+            <Sparkles className="size-3.5" />
+            Só novas
+          </Chip>
+          <Chip
+            active={sortMode === "newest"}
             onClick={() => setSortMode((m) => (m === "fit" ? "newest" : "fit"))}
           >
-            Ordenar: {sortMode === "fit" ? "melhor fit" : "mais novas"}
-          </Button>
+            <ArrowUpDown className="size-3.5" />
+            {sortMode === "fit" ? "Melhor encaixe" : "Mais novas"}
+          </Chip>
           {hiddenSentCount > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowSent((v) => !v)}
-            >
-              {showSent
-                ? "Esconder enviadas"
-                : `Mostrar enviadas (${hiddenSentCount})`}
-            </Button>
+            <Chip active={showSent} onClick={() => setShowSent((v) => !v)}>
+              {showSent ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              Enviadas ({hiddenSentCount})
+            </Chip>
           )}
         </div>
+      </div>
 
-        {error && (
-          <p className="text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        )}
+      {error && (
+        <div
+          role="alert"
+          className="flex flex-col items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm"
+        >
+          <p className="font-medium text-destructive">Não deu para buscar as vagas agora.</p>
+          <p className="text-muted-foreground">{error}</p>
+          <Button type="button" size="sm" variant="outline" onClick={() => void load()}>
+            Tentar de novo
+          </Button>
+        </div>
+      )}
 
-        {loading && (
+      {loading && (
+        <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Varrendo LinkedIn (Brasil) e bases remotas… pode levar ~20s na
-            primeira vez.
+            Varrendo LinkedIn e sites de empresas… na primeira vez pode levar uns 20 segundos.
           </p>
-        )}
+          <ul className="space-y-3">
+            {Array.from({ length: 4 }, (_, i) => (
+              <JobSkeleton key={i} />
+            ))}
+          </ul>
+        </div>
+      )}
 
-        {!loading && data && visibleJobs.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Nenhuma vaga com esses filtros agora. Troque o filtro ou toque em
-            Atualizar lista daqui a pouco.
+      {!loading && data && visibleJobs.length === 0 && (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card px-6 py-12 text-center">
+          <SearchX className="size-8 text-muted-foreground" />
+          <p className="font-medium">Nenhuma vaga com esses filtros</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Troque o filtro ou toque em Atualizar daqui a pouco — vagas novas
+            entram ao longo do dia.
           </p>
-        )}
+        </div>
+      )}
 
+      {!loading && (
         <ul className="space-y-3">
-          {visibleJobs.map((job) => (
-            <li
-              key={job.id}
-              className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {sentUrls.has(job.url) && <Badge variant="secondary">Enviada</Badge>}
-                  {job.isNew && <Badge variant="destructive">Nova</Badge>}
-                  <Badge className="tabular-nums">{job.score}% fit</Badge>
-                  <Badge variant="outline">
-                    {job.workplace === "remote" ? "Remoto" : "Presencial/híbrido"}
-                  </Badge>
-                  <Badge variant="outline">{sourceLabel(job)}</Badge>
-                </div>
-                <p className="font-semibold leading-snug">{job.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {job.company}
-                  {job.location ? ` · ${job.location}` : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatAge(job.ageDays)}
-                </p>
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {job.reasons.filter((r) => r !== "Vaga nova").join(" · ")}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col gap-2 sm:w-36">
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(buttonVariants({ size: "lg" }), "w-full text-center")}
-                >
-                  Abrir vaga
-                </a>
-                {sentUrls.has(job.url) ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => undoSent(job)}
-                  >
-                    Desfazer envio
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => markSent(job)}
-                    >
-                      Já enviei
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={isSaved(job.url)}
-                      onClick={() => saveJob(job)}
-                    >
-                      {isSaved(job.url) ? "Salva" : "Salvar para depois"}
-                    </Button>
-                  </>
+          {visibleJobs.map((job) => {
+            const sent = sentUrls.has(job.url);
+            const saved = isSaved(job.url);
+            const avatar = avatarFor(job.company);
+            return (
+              <li
+                key={job.id}
+                className={cn(
+                  "group rounded-2xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md",
+                  sent && "opacity-60",
                 )}
-              </div>
-            </li>
-          ))}
+              >
+                <div className="flex gap-3">
+                  <div
+                    className={cn(
+                      "flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-semibold",
+                      avatar.color,
+                    )}
+                    aria-hidden
+                  >
+                    {avatar.initials}
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold leading-snug hover:text-primary"
+                      >
+                        {job.title}
+                      </a>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1",
+                          fitStyle(job.score),
+                        )}
+                        title="Encaixe com seu currículo"
+                      >
+                        {job.score}%
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Building2 className="size-3.5" />
+                        {job.company}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        {job.workplace === "remote" ? (
+                          <Wifi className="size-3.5" />
+                        ) : (
+                          <MapPin className="size-3.5" />
+                        )}
+                        {job.workplace === "remote"
+                          ? "Remoto"
+                          : job.location.split(",")[0] || "Presencial"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="size-3.5" />
+                        {formatAge(job.ageDays)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {sent && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          <Check className="size-3" />
+                          Enviada
+                        </span>
+                      )}
+                      {job.isNew && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          <Sparkles className="size-3" />
+                          Nova
+                        </span>
+                      )}
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {sourceLabel(job)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(buttonVariants({ size: "lg" }), "flex-1 gap-2")}
+                  >
+                    Abrir vaga
+                    <ExternalLink className="size-4" />
+                  </a>
+                  {sent ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="gap-2"
+                      onClick={() => undoSent(job)}
+                    >
+                      <Undo2 className="size-4" />
+                      Desfazer
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="lg"
+                        className="gap-2"
+                        onClick={() => markSent(job)}
+                      >
+                        <Check className="size-4" />
+                        Já enviei
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-lg"
+                        disabled={saved}
+                        onClick={() => saveJob(job)}
+                        aria-label={saved ? "Vaga salva" : "Salvar para depois"}
+                        title={saved ? "Vaga salva" : "Salvar para depois"}
+                      >
+                        {saved ? (
+                          <BookmarkCheck className="size-4 text-primary" />
+                        ) : (
+                          <Bookmark className="size-4" />
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
-      </CardContent>
-    </Card>
+      )}
+
+      <details className="rounded-2xl border bg-card p-4 text-sm">
+        <summary className="cursor-pointer font-medium">Sites de empresas monitorados</summary>
+        <p className="mt-2 leading-relaxed text-muted-foreground">
+          {MONITORED_COMPANIES.join(" · ")}
+        </p>
+      </details>
+    </section>
   );
 }
