@@ -86,7 +86,7 @@ export function JobHuntApp() {
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
           <TabsTrigger value="hoje">Rotina</TabsTrigger>
           <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
-          <TabsTrigger value="vagas">Vagas remotas</TabsTrigger>
+          <TabsTrigger value="vagas">Achar vagas</TabsTrigger>
           <TabsTrigger value="preparar">Preparar</TabsTrigger>
           <TabsTrigger value="rastreador">Rastreador</TabsTrigger>
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
@@ -101,11 +101,19 @@ export function JobHuntApp() {
                 <button
                   type="button"
                   className="font-medium text-foreground underline-offset-2 hover:underline"
+                  onClick={() => setTab("vagas")}
+                >
+                  Achar vagas
+                </button>{" "}
+                (Gupy, Programathor, agregador remoto) +{" "}
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
                   onClick={() => setTab("linkedin")}
                 >
-                  buscas no LinkedIn
-                </button>{" "}
-                (comece por Remoto + Easy Apply).
+                  LinkedIn
+                </button>
+                .
               </li>
               <li>
                 Salve 10–15 vagas no rastreador como “Salva” enquanto navega.

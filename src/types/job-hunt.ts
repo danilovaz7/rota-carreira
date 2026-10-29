@@ -31,15 +31,17 @@ export type Application = {
 };
 
 export const DEFAULT_PROFILE: JobProfile = {
-  fullName: "",
-  headline: "Desenvolvedor(a) de software",
-  location: "Brasil",
-  keywords: "desenvolvedor software react node typescript",
+  fullName: "Danilo Vaz de Oliveira Bogue",
+  headline: "Desenvolvedor Full Stack (em formação)",
+  location: "Santos, SP",
+  keywords:
+    "desenvolvedor full stack júnior react node typescript santos remoto",
   skills:
-    "JavaScript, TypeScript, React, Node.js, Git, APIs REST, SQL, testes automatizados",
-  yearsExperience: "3",
-  linkedInUrl: "",
-  resumeSummary: "",
+    "JavaScript, TypeScript, React, React Native, Node.js, Express, REST APIs, MySQL, PostgreSQL, MongoDB, Tailwind CSS, Power BI, Power Apps, Power Automate, Git, Scrum",
+  yearsExperience: "1",
+  linkedInUrl: "https://www.linkedin.com/in/danilo-vaz-3442bb2b0",
+  resumeSummary:
+    "Full Stack em formação (Fatec ADS), com freelance em plataforma web (ForumPsico/Kolmeia), automações Power Platform na DP World e projetos React/Node (Play2Learn, portfólio). Inglês avançado.",
   dailyApplyGoal: 5,
 };
 

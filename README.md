@@ -6,7 +6,7 @@ Painel para acelerar sua busca de emprego no **LinkedIn** (e complementar com va
 
 - **Perfil de busca** — keywords, skills e resumo para links e textos.
 - **Links prontos** — buscas LinkedIn (Remoto + Easy Apply, vagas recentes, etc.), Google Jobs e Indeed BR.
-- **Vagas remotas** — lista filtrada via API pública da [Remotive](https://remotive.com) (sempre abra o link original).
+- **Achar vagas** — portais BR (Gupy, Programathor, GeekHunter, Revelo, Trampos, etc.) + agregador **Remotive + Remote OK + Arbeitnow**.
 - **Preparar candidatura** — match simples com a descrição, checklist Easy Apply, mensagens para copiar.
 - **Rastreador** — salva URLs, status (salva → aplicada → entrevista…) e meta diária.
 
