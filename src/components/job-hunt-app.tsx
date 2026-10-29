@@ -11,11 +11,12 @@ import { LinkedInHub } from "@/components/linkedin-hub";
 import { DiscoverJobs } from "@/components/discover-jobs";
 import { ApplicationTracker } from "@/components/application-tracker";
 import { PrepareApply } from "@/components/prepare-apply";
+import { ForYouJobs } from "@/components/for-you-jobs";
 
 export function JobHuntApp() {
   const [profile, setProfile] = useState<JobProfile | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [tab, setTab] = useState("hoje");
+  const [tab, setTab] = useState("para-voce");
 
   useEffect(() => {
     setProfile(loadProfile());
@@ -55,12 +56,11 @@ export function JobHuntApp() {
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Central de emprego
           </h1>
-          <Badge variant="secondary">LinkedIn + rastreador</Badge>
+          <Badge variant="secondary">Links automáticos</Badge>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Encontre mais vagas, prepare cada candidatura e registre o que já
-          aplicou. No LinkedIn você ainda clica em “Candidatar-se” — aqui você
-          ganha velocidade e organização.
+          O app busca vagas por você. Abra o link, candidate-se no site e marque
+          no rastreador. Sem estágio — foco trainee/júnior dev.
         </p>
       </header>
 
@@ -84,6 +84,7 @@ export function JobHuntApp() {
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="para-voce">Para você</TabsTrigger>
           <TabsTrigger value="hoje">Rotina</TabsTrigger>
           <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
           <TabsTrigger value="vagas">Achar vagas</TabsTrigger>
@@ -91,6 +92,14 @@ export function JobHuntApp() {
           <TabsTrigger value="rastreador">Rastreador</TabsTrigger>
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="para-voce" className="mt-4">
+          <ForYouJobs
+            profile={profile}
+            applications={applications}
+            onApplicationsChange={setApplications}
+          />
+        </TabsContent>
 
         <TabsContent value="hoje" className="mt-4 space-y-4">
           <div className="rounded-xl border bg-muted/30 p-4 text-sm leading-relaxed">

@@ -1,4 +1,6 @@
 import type { UnifiedJob } from "@/lib/jobs/types";
+import { stripHtml } from "@/lib/jobs/strip-html";
+import { fetchLinkedInBrazilJobs } from "@/lib/jobs/fetch-linkedin-guest";
 
 const TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -61,6 +63,7 @@ export async function fetchRemoteOkJobs(): Promise<UnifiedJob[]> {
       tags?: string[];
       date?: string;
       epoch?: number;
+      description?: string;
     }>;
     return data
       .filter((j) => j.id && j.position && j.url)
@@ -73,6 +76,7 @@ export async function fetchRemoteOkJobs(): Promise<UnifiedJob[]> {
         location: j.location ?? "Remote",
         tags: Array.isArray(j.tags) ? j.tags : [],
         publishedAt: j.date ?? (j.epoch ? new Date(j.epoch * 1000).toISOString() : ""),
+        description: j.description ? stripHtml(j.description).slice(0, 2000) : undefined,
       }));
   });
 }
@@ -93,6 +97,7 @@ export async function fetchArbeitnowJobs(): Promise<UnifiedJob[]> {
         tags: string[];
         created_at?: string;
         location?: string;
+        description?: string;
       }>;
     };
     return (data.data ?? []).map((j) => ({
@@ -104,7 +109,55 @@ export async function fetchArbeitnowJobs(): Promise<UnifiedJob[]> {
       location: j.remote ? "Remote" : (j.location ?? ""),
       tags: j.tags ?? [],
       publishedAt: j.created_at ?? "",
+      description: j.description ? stripHtml(j.description).slice(0, 2000) : undefined,
     }));
+  });
+}
+
+export async function fetchJobicyJobs(): Promise<UnifiedJob[]> {
+  return cached("jobicy", async () => {
+    const jobs: UnifiedJob[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 3; page++) {
+      const params = new URLSearchParams({ count: "50" });
+      if (cursor) params.set("cursor", cursor);
+      const res = await fetch(
+        `https://jobicy.com/api/v2/remote-jobs?${params}`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (!res.ok) break;
+      const data = (await res.json()) as {
+        jobs: Array<{
+          id: number;
+          url: string;
+          jobTitle: string;
+          companyName: string;
+          jobGeo: string;
+          jobLevel: string;
+          jobIndustry: string[];
+          jobExcerpt: string;
+          pubDate: string;
+        }>;
+        nextCursor?: string;
+        hasMore?: boolean;
+      };
+      for (const j of data.jobs ?? []) {
+        jobs.push({
+          id: `jobicy-${j.id}`,
+          source: "Jobicy",
+          title: j.jobTitle,
+          company: j.companyName,
+          url: j.url,
+          location: j.jobGeo ?? "Remote",
+          tags: [...(j.jobIndustry ?? []), j.jobLevel].filter(Boolean),
+          publishedAt: j.pubDate,
+          description: j.jobExcerpt,
+        });
+      }
+      if (!data.hasMore || !data.nextCursor) break;
+      cursor = data.nextCursor;
+    }
+    return jobs;
   });
 }
 
@@ -113,6 +166,19 @@ export async function fetchAllUnifiedJobs(): Promise<UnifiedJob[]> {
     fetchRemotiveJobs(),
     fetchRemoteOkJobs(),
     fetchArbeitnowJobs(),
+    fetchJobicyJobs(),
+  ]);
+  const jobs: UnifiedJob[] = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") jobs.push(...r.value);
+  }
+  return jobs;
+}
+
+export async function fetchAllJobsIncludingLinkedIn(): Promise<UnifiedJob[]> {
+  const results = await Promise.allSettled([
+    fetchLinkedInBrazilJobs(),
+    fetchAllUnifiedJobs(),
   ]);
   const jobs: UnifiedJob[] = [];
   for (const r of results) {

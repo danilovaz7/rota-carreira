@@ -4,6 +4,7 @@ Painel para acelerar sua busca de emprego no **LinkedIn** (e complementar com va
 
 ## O que faz
 
+- **Para você** — busca automática de links (LinkedIn BR + APIs remotas), filtra estágio e ranqueia trainee/júnior pelo seu currículo.
 - **Perfil de busca** — keywords, skills e resumo para links e textos.
 - **Links prontos** — buscas LinkedIn (Remoto + Easy Apply, vagas recentes, etc.), Google Jobs e Indeed BR.
 - **Achar vagas** — portais BR (Gupy, Programathor, GeekHunter, Revelo, Trampos, etc.) + agregador **Remotive + Remote OK + Arbeitnow**.
