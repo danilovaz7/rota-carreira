@@ -5,7 +5,11 @@ const INTERNSHIP_RE =
   /\b(est[aá]gio|estagi[aá]rio|internship|\bintern\b|apprentice|pasant[ií]a|trainee\s+program\s+intern)\b/i;
 
 const SENIOR_RE =
-  /\b(senior|s[eê]nior|staff|principal|director|diretor|head of|lead\b|tech lead|chapter lead|\bsr\.?\b|pleno\s+s[eê]nior|5\+?\s*years|7\+?\s*years|10\+?\s*years|15\+?\s*years)\b/i;
+  /\b(senior|s[eê]nior|staff|principal|director|diretor|head of|lead\b|leader|lider|tech lead|chapter lead|\bsr\.?\b|pleno\s+s[eê]nior|coordenador|coordenadora|coordenacao|coordinator|master|gerente|manager|arquiteto|arquiteta|architect|5\+?\s*years|7\+?\s*years|10\+?\s*years|15\+?\s*years)\b/i;
+
+/** Nível intermediário: só aceito quando o título também diz júnior (ex.: "Júnior/Pleno"). */
+const MID_LEVEL_RE =
+  /\b(pleno|\bpl\b\.?|especialista|specialist|mid[- ]?level|\bmid\b|intermediate|iii|iv)\b/i;
 
 const JUNIOR_RE =
   /\b(j[uú]nior|\bjr\.?\b|trainee|entry[- ]level|graduat|in[ií]cio\s+de\s+carreira|primeiro\s+emprego|0\s*[-–]\s*2\s*anos|1\s*[-–]\s*3\s*anos|2\s*[-–]\s*4\s*anos|at[eé]\s*2\s*anos|at[eé]\s*3\s*anos)\b/i;
@@ -13,8 +17,11 @@ const JUNIOR_RE =
 const DEV_ROLE_RE =
   /\b(desenvolvedor|developer|software|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web\s+dev|react|node|typescript|javascript|engenharia\s+de\s+software|analista\s+de\s+desenvolvimento|power\s+platform|power\s+apps|devops|mobile\s+dev|react\s+native)\b/i;
 
+const DEV_TITLE_RE =
+  /\b(desenvolvedor|desenvolvedora|developer|software|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web|react|node|typescript|javascript|java|python|php|\.net|c#|programador[a]?\s+(de\s+)?(sistemas|web|software|full|front|back|java|python|php|react|node|\.net)|analista\s+de\s+(sistemas|desenvolvimento)|engenheir[oa]\s+de\s+software|engenharia\s+de\s+software|power\s+platform|power\s+apps|rpa|devops|mobile|android|ios|qa)\b/i;
+
 const NON_DEV_RE =
-  /\b(account executive|sales development|recruiter|customer support|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader|personalberater)\b/i;
+  /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|recruiter|customer support|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader|personalberater)\b/i;
 
 /** Sinônimos leves — “figurinha um pouco”, sem exagerar. */
 const STRETCH: Record<string, string[]> = {
@@ -45,13 +52,10 @@ function expandSkill(skill: string): string[] {
 }
 
 export function isExcludedJob(job: UnifiedJob): boolean {
-  const blob = normalize(
-    `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")}`,
-  );
-  if (INTERNSHIP_RE.test(blob)) return true;
-  if (SENIOR_RE.test(normalize(job.title))) return true;
-  if (/\best[aá]gio\b/.test(normalize(job.title))) return true;
-  return false;
+  const title = normalize(job.title);
+  if (INTERNSHIP_RE.test(normalize(`${job.title} ${job.tags.join(" ")}`))) return true;
+  if (SENIOR_RE.test(title)) return true;
+  return MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title);
 }
 
 export function scoreJobForProfile(
@@ -65,8 +69,13 @@ export function scoreJobForProfile(
     `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,
   );
 
-  if (NON_DEV_RE.test(blob)) return null;
-  if (!DEV_ROLE_RE.test(blob)) return null;
+  const title = normalize(job.title);
+  if (NON_DEV_RE.test(`${title} ${normalize(job.company)}`)) return null;
+  const devTitle = DEV_TITLE_RE.test(title);
+  const techTrainee =
+    /\btrainee\b/.test(title) &&
+    /\b(tecnologia|\bti\b|tech|software|sistemas|desenvolvimento de sistemas|engenharia de software)\b/.test(title);
+  if (!devTitle && !techTrainee) return null;
 
   const reasons: string[] = [];
   let score = 0;
@@ -118,6 +127,11 @@ export function scoreJobForProfile(
     );
   }
 
+  if (COMPANY_SITE_SOURCES.has(job.source)) {
+    score += 10;
+    reasons.push(`Site da ${job.company}`);
+  }
+
   const ageDays = daysSince(job.publishedAt, now);
   if (ageDays !== null && ageDays > MAX_AGE_DAYS) return null;
   const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
@@ -145,10 +159,14 @@ const MAX_AGE_DAYS = 21;
 /** Grande São Paulo + Baixada Santista (sem acentos, pós-normalize). */
 const SANTOS_REGION_RE =
   /\b(santos|sao vicente|guaruja|praia grande|cubatao|bertioga|mongagua|itanhaem|peruibe|baixada santista)\b/;
+const COMPANY_SITE_SOURCES = new Set<UnifiedJob["source"]>(["Gupy", "Site da empresa"]);
+
+/** "São Paulo" só conta como cidade no início de cada local (evita "Agudos, São Paulo" = estado). */
 const SP_REGION_RE = new RegExp(
   [
     SANTOS_REGION_RE.source,
-    /\b(sao paulo, sao paulo|greater sao paulo|grande sao paulo|sao paulo, sp|guarulhos|osasco|barueri|alphaville|santana de parnaiba|santo andre|sao bernardo|sao caetano|diadema|maua|ribeirao pires|cotia|taboao da serra|embu|itapecerica|carapicuiba|jandira|itapevi|mogi das cruzes|suzano|aruja|itaquaquecetuba|poa|ferraz de vasconcelos|caieiras|franco da rocha|cajamar)\b/.source,
+    /(^|; )sao paulo\b/.source,
+    /\b(greater sao paulo|grande sao paulo|guarulhos|osasco|barueri|alphaville|santana de parnaiba|santo andre|sao bernardo|sao caetano|diadema|maua|ribeirao pires|cotia|taboao da serra|embu|itapecerica|carapicuiba|jandira|itapevi|mogi das cruzes|suzano|aruja|itaquaquecetuba|poa|ferraz de vasconcelos|caieiras|franco da rocha|cajamar)\b/.source,
   ].join("|"),
 );
 

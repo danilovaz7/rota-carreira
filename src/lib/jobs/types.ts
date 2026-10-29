@@ -3,7 +3,9 @@ export type JobSource =
   | "Remotive"
   | "RemoteOK"
   | "Arbeitnow"
-  | "Jobicy";
+  | "Jobicy"
+  | "Gupy"
+  | "Site da empresa";
 
 export type Workplace = "remote" | "onsite" | "unknown";
 

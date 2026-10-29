@@ -3,9 +3,11 @@ import { fetchAllJobsIncludingLinkedIn } from "@/lib/jobs/fetch-sources";
 import { rankJobsForProfile } from "@/lib/jobs/profile-matcher";
 import { DEFAULT_PROFILE, type JobProfile } from "@/types/job-hunt";
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(Number(searchParams.get("limit") ?? "50") || 50, 60);
+  const limit = Math.min(Number(searchParams.get("limit") ?? "80") || 80, 120);
 
   const profile: JobProfile = {
     ...DEFAULT_PROFILE,

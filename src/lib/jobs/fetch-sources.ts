@@ -1,6 +1,7 @@
 import type { UnifiedJob } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
 import { fetchLinkedInBrazilJobs } from "@/lib/jobs/fetch-linkedin-guest";
+import { fetchAllCompanySiteJobs } from "@/lib/jobs/company-sources";
 
 const TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -182,6 +183,7 @@ export async function fetchAllUnifiedJobs(): Promise<UnifiedJob[]> {
 export async function fetchAllJobsIncludingLinkedIn(): Promise<UnifiedJob[]> {
   const results = await Promise.allSettled([
     fetchLinkedInBrazilJobs(),
+    fetchAllCompanySiteJobs(),
     fetchAllUnifiedJobs(),
   ]);
   const jobs: UnifiedJob[] = [];

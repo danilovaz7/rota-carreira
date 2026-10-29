@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { Application, ApplicationStatus, JobProfile } from "@/types/job-hunt";
 import type { ScoredJob } from "@/lib/jobs/types";
 import { newApplicationId, saveApplications } from "@/lib/storage";
+import { MONITORED_COMPANIES } from "@/lib/jobs/company-sources";
 
 type Props = {
   profile: JobProfile;
@@ -31,6 +32,11 @@ const WORKPLACE_FILTERS: { value: WorkplaceFilter; label: string }[] = [
   { value: "remote", label: "Remoto" },
   { value: "onsite", label: "Presencial/híbrido (SP e Santos)" },
 ];
+
+function sourceLabel(job: ScoredJob): string {
+  if (job.source === "Gupy") return "Site da empresa (Gupy)";
+  return job.source;
+}
 
 function formatAge(ageDays: number | null): string {
   if (ageDays === null) return "Data não informada";
@@ -186,13 +192,23 @@ export function ForYouJobs({
       <CardHeader className="space-y-1">
         <CardTitle className="text-xl">Vagas para você</CardTitle>
         <CardDescription>
-          Links encontrados automaticamente, sem estágio, focados em
-          trainee/júnior e no seu currículo. Remoto vale de qualquer lugar;
+          Links encontrados automaticamente no LinkedIn e nos sites de
+          carreira das empresas, sem estágio, focados em trainee/júnior e no
+          seu currículo. Remoto vale de qualquer lugar;
           presencial e híbrido só em São Paulo, Santos e região. Vagas da
           última semana, com as mais novas em destaque.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <details className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <summary className="cursor-pointer font-medium">
+            Sites de empresas monitorados
+          </summary>
+          <p className="mt-2 text-muted-foreground">
+            {MONITORED_COMPANIES.join(" · ")}
+          </p>
+        </details>
+
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" onClick={() => void load()} disabled={loading}>
             {loading ? "Procurando vagas…" : "Atualizar lista"}
@@ -280,7 +296,7 @@ export function ForYouJobs({
                   <Badge variant="outline">
                     {job.workplace === "remote" ? "Remoto" : "Presencial/híbrido"}
                   </Badge>
-                  <Badge variant="outline">{job.source}</Badge>
+                  <Badge variant="outline">{sourceLabel(job)}</Badge>
                 </div>
                 <p className="font-semibold leading-snug">{job.title}</p>
                 <p className="text-sm text-muted-foreground">
