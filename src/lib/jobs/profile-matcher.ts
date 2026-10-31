@@ -95,12 +95,86 @@ export function isExcludedJob(job: UnifiedJob, includeInternships = false): bool
   return MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title);
 }
 
+function scoreInternshipJob(
+  job: UnifiedJob,
+  profile: JobProfile,
+  now: number,
+): ScoredJob | null {
+  const blob = normalize(
+    `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,
+  );
+  const title = normalize(job.title);
+  if (SENIOR_RE.test(title)) return null;
+
+  const reasons: string[] = ["Estágio / estagiário"];
+  let score = 42;
+
+  const workplace = resolveWorkplace(job, blob);
+  const location = normalize(job.location);
+
+  if (workplace === "remote") {
+    if (job.source !== "LinkedIn" && !REMOTE_OPEN_TO_BRAZIL_RE.test(location)) {
+      return null;
+    }
+    reasons.push("Remoto");
+  } else {
+    if (!SP_REGION_RE.test(location)) return null;
+    score += 8;
+    reasons.push(
+      SANTOS_REGION_RE.test(location) ? "Presencial/híbrido · Baixada Santista" : "Presencial/híbrido · Grande SP",
+    );
+  }
+
+  if (COMPANY_SITE_SOURCES.has(job.source)) {
+    score += 8;
+    reasons.push(`Site da ${job.company}`);
+  }
+
+  const skills = parseSkillTokens(profile);
+  const matchedLabels: string[] = [];
+  for (const skill of skills) {
+    const variants = expandSkill(skill);
+    if (variants.some((v) => v.length >= 3 && blob.includes(v))) {
+      if (matchedLabels.length < 3) matchedLabels.push(skill);
+    }
+  }
+  if (matchedLabels.length) {
+    score += 12 + matchedLabels.length * 4;
+    reasons.push(`Área do perfil: ${matchedLabels.join(", ")}`);
+  }
+
+  const ageDays = daysSince(job.publishedAt, now);
+  if (ageDays !== null && ageDays > MAX_AGE_DAYS + 14) return null;
+  const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
+  if (ageDays !== null) {
+    if (ageDays <= 1) score += 12;
+    else if (ageDays <= 3) score += 8;
+    else if (ageDays <= 7) score += 4;
+  }
+  if (isNew) reasons.unshift("Vaga nova");
+
+  if (score < 20) return null;
+
+  return {
+    ...job,
+    score: Math.min(100, score),
+    reasons,
+    workplace,
+    ageDays,
+    isNew,
+  };
+}
+
 export function scoreJobForProfile(
   job: UnifiedJob,
   profile: JobProfile,
   now: number,
 ): ScoredJob | null {
   if (isExcludedJob(job, profile.includeInternships)) return null;
+
+  if (profile.includeInternships && isInternshipJob(job)) {
+    return scoreInternshipJob(job, profile, now);
+  }
 
   const blob = normalize(
     `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,
@@ -221,6 +295,26 @@ function daysSince(iso: string, now: number): number | null {
   return Math.max(0, Math.floor((now - t) / 86_400_000));
 }
 
+function dedupeKey(job: ScoredJob): string {
+  return `${normalize(job.company)}|${normalize(job.title)}`;
+}
+
+function takeUnique(
+  source: ScoredJob[],
+  seen: Set<string>,
+  max: number,
+): ScoredJob[] {
+  const picked: ScoredJob[] = [];
+  for (const j of source) {
+    const key = dedupeKey(j);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    picked.push(j);
+    if (picked.length >= max) break;
+  }
+  return picked;
+}
+
 export function rankJobsForProfile(
   jobs: UnifiedJob[],
   profile: JobProfile,
@@ -233,14 +327,19 @@ export function rankJobsForProfile(
     if (s) scored.push(s);
   }
   scored.sort((a, b) => b.score - a.score);
-  const seen = new Set<string>();
-  const out: ScoredJob[] = [];
-  for (const j of scored) {
-    const key = `${normalize(j.company)}|${normalize(j.title)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(j);
-    if (out.length >= limit) break;
+
+  if (!profile.includeInternships) {
+    const seen = new Set<string>();
+    return takeUnique(scored, seen, limit);
   }
-  return out;
+
+  const interns = scored.filter((j) => isInternshipJob(j));
+  const others = scored.filter((j) => !isInternshipJob(j));
+  const internSlots = Math.round(limit * 0.7);
+  const seen = new Set<string>();
+  const out = [...takeUnique(interns, seen, internSlots)];
+  out.push(...takeUnique(others, seen, limit - out.length));
+  if (out.length < limit) out.push(...takeUnique(interns, seen, limit - out.length));
+  if (out.length < limit) out.push(...takeUnique(others, seen, limit - out.length));
+  return out.slice(0, limit);
 }

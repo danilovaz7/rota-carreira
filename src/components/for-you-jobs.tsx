@@ -224,7 +224,7 @@ export function ForYouJobs({
     setError(null);
     try {
       const params = new URLSearchParams({
-        limit: "80",
+        limit: profile.includeInternships ? "100" : "80",
         fullName: profile.fullName,
         headline: profile.headline,
         skills: profile.skills,

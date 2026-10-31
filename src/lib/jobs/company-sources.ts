@@ -1,4 +1,6 @@
 import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
+import { buildInternshipSearchTerms } from "@/lib/jobs/profile-search-terms";
+import type { JobProfile } from "@/types/job-hunt";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
 
@@ -246,11 +248,18 @@ function gupyCompanyName(job: GupyJob): string {
 export async function fetchGupyJobs(
   searchTerms?: string[],
   includeInternships = false,
+  profile?: JobProfile,
 ): Promise<UnifiedJob[]> {
-  const terms = searchTerms?.length ? searchTerms.slice(0, 12) : GUPY_TERMS;
+  const profileTerms = searchTerms?.length ? searchTerms.slice(0, 8) : GUPY_TERMS;
+  const internTerms =
+    includeInternships && profile ? buildInternshipSearchTerms(profile) : [];
+  const terms = includeInternships
+    ? [...new Set([...internTerms, ...profileTerms])]
+    : profileTerms;
+  const offsets = includeInternships ? [0, 100, 200, 300, 400] : [0, 100, 200];
   const cacheKey = `gupy:${includeInternships ? "i:" : ""}${terms.join("|").slice(0, 240)}`;
   return cached(cacheKey, async () => {
-    const pages = terms.flatMap((term) => [0, 100, 200].map((offset) => ({ term, offset })));
+    const pages = terms.flatMap((term) => offsets.map((offset) => ({ term, offset })));
     const results = await mapLimit(pages, 5, async ({ term, offset }) => {
       const params = new URLSearchParams({ jobName: term, limit: "100", offset: String(offset) });
       const res = await fetchWithTimeout(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
@@ -304,9 +313,10 @@ export async function fetchCompanyBoardJobs(): Promise<UnifiedJob[]> {
 export async function fetchAllCompanySiteJobs(
   searchTerms?: string[],
   includeInternships = false,
+  profile?: JobProfile,
 ): Promise<UnifiedJob[]> {
   const results = await Promise.allSettled([
-    fetchGupyJobs(searchTerms, includeInternships),
+    fetchGupyJobs(searchTerms, includeInternships, profile),
     fetchCompanyBoardJobs(),
     fetchMercadoLivreJobs(),
   ]);

@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
 import { fetchAllJobsIncludingLinkedIn } from "@/lib/jobs/fetch-sources";
 import { profileFromSearchParams } from "@/lib/jobs/profile-from-request";
-import { buildSearchTermsFromProfile } from "@/lib/jobs/profile-search-terms";
+import {
+  buildInternshipSearchTerms,
+  buildSearchTermsFromProfile,
+} from "@/lib/jobs/profile-search-terms";
 import { rankJobsForProfile } from "@/lib/jobs/profile-matcher";
 
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(Number(searchParams.get("limit") ?? "80") || 80, 120);
   const profile = profileFromSearchParams(searchParams);
+  const defaultLimit = profile.includeInternships ? 100 : 80;
+  const limit = Math.min(Number(searchParams.get("limit") ?? String(defaultLimit)) || defaultLimit, 120);
   const searchTerms = buildSearchTermsFromProfile(profile);
+  const internshipTerms = profile.includeInternships
+    ? buildInternshipSearchTerms(profile)
+    : [];
 
   try {
     const all = await fetchAllJobsIncludingLinkedIn(profile);
@@ -24,6 +31,8 @@ export async function GET(request: Request) {
           : "estágio / internship; sênior / liderança",
         focus: `perfil: ${profile.headline || "skills e palavras-chave"}`,
         searchTerms: searchTerms.slice(0, 6),
+        internshipTerms: internshipTerms.slice(0, 6),
+        mix: profile.includeInternships ? "~70% estágio na lista Para você" : undefined,
         stretch: "sinônimos leves nas skills (ex.: React↔Next)",
       },
       scanned: all.length,

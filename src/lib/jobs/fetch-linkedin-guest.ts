@@ -1,5 +1,7 @@
 import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
 import * as cheerio from "cheerio";
+import type { JobProfile } from "@/types/job-hunt";
+import { buildInternshipSearchTerms } from "@/lib/jobs/profile-search-terms";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 
 const TTL_MS = 30 * 60 * 1000;
@@ -30,17 +32,19 @@ const MODES: SearchMode[] = [
 ];
 
 const PAGES = [0, 25];
+const INTERNSHIP_PAGES = [0, 25, 50, 75];
 
 async function fetchSearchPage(
   keywords: string,
   mode: SearchMode,
   start: number,
+  employmentFilter = "2,3",
 ): Promise<string> {
   const params = new URLSearchParams({
     keywords,
     ...mode.params,
     f_TPR: "r604800",
-    f_E: "2,3",
+    f_E: employmentFilter,
     sortBy: "DD",
     start: String(start),
   });
@@ -92,12 +96,17 @@ function parseLinkedInHtml(html: string, workplace: Workplace): UnifiedJob[] {
   return jobs;
 }
 
-async function runMode(mode: SearchMode, keywordsList: string[]): Promise<UnifiedJob[]> {
+async function runMode(
+  mode: SearchMode,
+  keywordsList: string[],
+  pages: number[],
+  employmentFilter: string,
+): Promise<UnifiedJob[]> {
   const jobs: UnifiedJob[] = [];
   for (const keywords of keywordsList) {
-    for (const start of PAGES) {
+    for (const start of pages) {
       try {
-        const html = await fetchSearchPage(keywords, mode, start);
+        const html = await fetchSearchPage(keywords, mode, start, employmentFilter);
         const page = parseLinkedInHtml(html, mode.workplace);
         jobs.push(...page);
         if (page.length < 10) break;
@@ -110,13 +119,30 @@ async function runMode(mode: SearchMode, keywordsList: string[]): Promise<Unifie
   return jobs;
 }
 
-export async function fetchLinkedInBrazilJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
+export async function fetchLinkedInBrazilJobs(
+  searchTerms?: string[],
+  profile?: JobProfile,
+): Promise<UnifiedJob[]> {
+  const includeInternships = profile?.includeInternships ?? false;
   const keywordsList = searchTerms?.length ? searchTerms.slice(0, 8) : DEFAULT_KEYWORDS;
-  const cacheKey = keywordsList.join("|").slice(0, 240);
+  const internKeywords = includeInternships && profile ? buildInternshipSearchTerms(profile) : [];
+  const cacheKey = `${includeInternships ? "i:" : ""}${keywordsList.join("|")}|${internKeywords.join("|")}`.slice(
+    0,
+    280,
+  );
   const hit = linkedInCache.get(cacheKey);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.jobs;
 
-  const results = await Promise.allSettled(MODES.map((mode) => runMode(mode, keywordsList)));
+  const tasks = [
+    ...MODES.map((mode) => runMode(mode, keywordsList, PAGES, "2,3")),
+  ];
+  if (includeInternships && internKeywords.length) {
+    tasks.push(
+      ...MODES.map((mode) => runMode(mode, internKeywords, INTERNSHIP_PAGES, "1,2,3")),
+    );
+  }
+
+  const results = await Promise.allSettled(tasks);
   const byId = new Map<string, UnifiedJob>();
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
