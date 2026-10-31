@@ -137,15 +137,17 @@ export function JobHuntApp() {
       </header>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full gap-4">
-        <TabsList className="h-auto w-full gap-1 rounded-2xl bg-card p-1.5 shadow-xs ring-1 ring-border max-md:flex max-md:justify-start max-md:overflow-x-auto max-md:[scrollbar-width:thin] max-md:[&::-webkit-scrollbar]:h-1.5 max-md:[&::-webkit-scrollbar-thumb]:rounded-full max-md:[&::-webkit-scrollbar-thumb]:bg-border md:grid md:grid-cols-4 md:overflow-visible md:gap-1.5 md:p-2 lg:grid-cols-7 lg:gap-1">
+        <TabsList className="h-auto w-full rounded-2xl bg-card p-1.5 shadow-xs ring-1 ring-border max-md:flex max-md:justify-start max-md:gap-1 max-md:overflow-x-auto max-md:[scrollbar-width:thin] max-md:[&::-webkit-scrollbar]:h-1.5 max-md:[&::-webkit-scrollbar-thumb]:rounded-full max-md:[&::-webkit-scrollbar-thumb]:bg-border md:flex md:flex-nowrap md:gap-1 md:overflow-visible md:p-2">
           {TABS.map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
               value={value}
-              className="max-md:shrink-0 gap-1.5 rounded-xl px-3 py-2 md:w-full md:min-w-0 md:justify-center md:px-2 md:py-2.5 md:text-sm lg:py-2.5 xl:px-3 xl:py-3 data-active:bg-primary data-active:text-primary-foreground"
+              className="max-md:shrink-0 max-md:gap-1.5 max-md:px-3 max-md:py-2 md:!flex-none md:basis-0 md:grow md:gap-1.5 md:rounded-xl md:px-1 md:py-3 md:text-[13px] md:leading-snug lg:gap-2 lg:px-2 lg:text-sm xl:py-3.5 data-active:bg-primary data-active:text-primary-foreground md:data-active:shadow-sm"
             >
-              <Icon className="size-4 shrink-0 md:size-[1.125rem] xl:size-5" />
-              <span className="truncate">{label}</span>
+              <Icon className="size-4 shrink-0 lg:size-[1.125rem]" />
+              <span className="max-md:whitespace-nowrap md:text-center md:whitespace-normal md:[text-wrap:balance]">
+                {label}
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>
