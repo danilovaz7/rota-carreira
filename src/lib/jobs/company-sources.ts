@@ -243,9 +243,11 @@ function gupyCompanyName(job: GupyJob): string {
   return sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : "Empresa (Gupy)";
 }
 
-export async function fetchGupyJobs(): Promise<UnifiedJob[]> {
-  return cached("gupy", async () => {
-    const pages = GUPY_TERMS.flatMap((term) => [0, 100, 200].map((offset) => ({ term, offset })));
+export async function fetchGupyJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
+  const terms = searchTerms?.length ? searchTerms.slice(0, 12) : GUPY_TERMS;
+  const cacheKey = `gupy:${terms.join("|").slice(0, 240)}`;
+  return cached(cacheKey, async () => {
+    const pages = terms.flatMap((term) => [0, 100, 200].map((offset) => ({ term, offset })));
     const results = await mapLimit(pages, 5, async ({ term, offset }) => {
       const params = new URLSearchParams({ jobName: term, limit: "100", offset: String(offset) });
       const res = await fetchWithTimeout(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
@@ -287,9 +289,9 @@ export async function fetchCompanyBoardJobs(): Promise<UnifiedJob[]> {
   });
 }
 
-export async function fetchAllCompanySiteJobs(): Promise<UnifiedJob[]> {
+export async function fetchAllCompanySiteJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
   const results = await Promise.allSettled([
-    fetchGupyJobs(),
+    fetchGupyJobs(searchTerms),
     fetchCompanyBoardJobs(),
     fetchMercadoLivreJobs(),
   ]);

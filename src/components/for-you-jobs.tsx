@@ -144,6 +144,7 @@ type ApiResponse = {
   scanned: number;
   count: number;
   refreshedAt: string;
+  filters?: { focus?: string; searchTerms?: string[] };
   error?: string;
 };
 
@@ -211,10 +212,12 @@ export function ForYouJobs({
     try {
       const params = new URLSearchParams({
         limit: "80",
+        fullName: profile.fullName,
         headline: profile.headline,
         skills: profile.skills,
         keywords: profile.keywords,
         location: profile.location,
+        resumeSummary: profile.resumeSummary,
       });
       const res = await fetch(`/api/jobs/for-you?${params}`);
       const json = (await res.json()) as ApiResponse & { error?: string };
@@ -299,9 +302,20 @@ export function ForYouJobs({
         <div className="space-y-1">
           <h2 className="text-xl font-semibold tracking-tight">Vagas para você</h2>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Trainee e júnior que combinam com seu currículo, do LinkedIn e dos
-            sites das empresas. Remoto de qualquer lugar; presencial só em SP,
-            Santos e região.
+            Vagas de entrada (trainee/júnior) alinhadas ao{" "}
+            <span className="font-medium text-foreground">
+              {profile.headline.trim() || "seu perfil de busca"}
+            </span>
+            . LinkedIn, Gupy e sites de empresas. Remoto em todo o Brasil;
+            presencial só em SP, Santos e região.
+            {data?.filters?.searchTerms?.length ? (
+              <>
+                {" "}
+                <span className="text-xs">
+                  Buscando: {data.filters.searchTerms.slice(0, 4).join(" · ")}
+                </span>
+              </>
+            ) : null}
           </p>
         </div>
         <Button type="button" onClick={() => void load()} disabled={loading} className="gap-2">

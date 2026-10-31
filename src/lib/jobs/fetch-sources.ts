@@ -3,6 +3,8 @@ import type { UnifiedJob } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
 import { fetchLinkedInBrazilJobs } from "@/lib/jobs/fetch-linkedin-guest";
 import { fetchAllCompanySiteJobs } from "@/lib/jobs/company-sources";
+import { buildSearchTermsFromProfile } from "@/lib/jobs/profile-search-terms";
+import type { JobProfile } from "@/types/job-hunt";
 
 const TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -190,9 +192,14 @@ function withDeadline(promise: Promise<UnifiedJob[]>): Promise<UnifiedJob[]> {
   ]);
 }
 
-export async function fetchAllJobsIncludingLinkedIn(): Promise<UnifiedJob[]> {
+export async function fetchAllJobsIncludingLinkedIn(profile?: JobProfile): Promise<UnifiedJob[]> {
+  const searchTerms = profile ? buildSearchTermsFromProfile(profile) : undefined;
   const results = await Promise.all(
-    [fetchLinkedInBrazilJobs(), fetchAllCompanySiteJobs(), fetchAllUnifiedJobs()].map(withDeadline),
+    [
+      fetchLinkedInBrazilJobs(searchTerms),
+      fetchAllCompanySiteJobs(searchTerms),
+      fetchAllUnifiedJobs(),
+    ].map(withDeadline),
   );
   return results.flat();
 }

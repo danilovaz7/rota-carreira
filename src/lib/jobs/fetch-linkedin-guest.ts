@@ -3,14 +3,15 @@ import * as cheerio from "cheerio";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 
 const TTL_MS = 30 * 60 * 1000;
-let cache: { at: number; jobs: UnifiedJob[] } | null = null;
 
-const KEYWORDS = [
+const DEFAULT_KEYWORDS = [
   "desenvolvedor junior",
   "desenvolvedor trainee",
   "desenvolvedor full stack junior",
   "power platform junior",
 ];
+
+const linkedInCache = new Map<string, { at: number; jobs: UnifiedJob[] }>();
 
 const BRAZIL_GEO = "106057199";
 const GREATER_SAO_PAULO_GEO = "90009574";
@@ -91,9 +92,9 @@ function parseLinkedInHtml(html: string, workplace: Workplace): UnifiedJob[] {
   return jobs;
 }
 
-async function runMode(mode: SearchMode): Promise<UnifiedJob[]> {
+async function runMode(mode: SearchMode, keywordsList: string[]): Promise<UnifiedJob[]> {
   const jobs: UnifiedJob[] = [];
-  for (const keywords of KEYWORDS) {
+  for (const keywords of keywordsList) {
     for (const start of PAGES) {
       try {
         const html = await fetchSearchPage(keywords, mode, start);
@@ -109,12 +110,13 @@ async function runMode(mode: SearchMode): Promise<UnifiedJob[]> {
   return jobs;
 }
 
-export async function fetchLinkedInBrazilJobs(): Promise<UnifiedJob[]> {
-  if (cache && Date.now() - cache.at < TTL_MS) {
-    return cache.jobs;
-  }
+export async function fetchLinkedInBrazilJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
+  const keywordsList = searchTerms?.length ? searchTerms.slice(0, 8) : DEFAULT_KEYWORDS;
+  const cacheKey = keywordsList.join("|").slice(0, 240);
+  const hit = linkedInCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.jobs;
 
-  const results = await Promise.allSettled(MODES.map(runMode));
+  const results = await Promise.allSettled(MODES.map((mode) => runMode(mode, keywordsList)));
   const byId = new Map<string, UnifiedJob>();
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
@@ -127,8 +129,6 @@ export async function fetchLinkedInBrazilJobs(): Promise<UnifiedJob[]> {
   }
 
   const jobs = [...byId.values()];
-  if (jobs.length > 0) {
-    cache = { at: Date.now(), jobs };
-  }
+  if (jobs.length > 0) linkedInCache.set(cacheKey, { at: Date.now(), jobs });
   return jobs;
 }

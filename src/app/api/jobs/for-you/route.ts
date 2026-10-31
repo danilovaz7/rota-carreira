@@ -1,32 +1,28 @@
 import { NextResponse } from "next/server";
 import { fetchAllJobsIncludingLinkedIn } from "@/lib/jobs/fetch-sources";
+import { profileFromSearchParams } from "@/lib/jobs/profile-from-request";
+import { buildSearchTermsFromProfile } from "@/lib/jobs/profile-search-terms";
 import { rankJobsForProfile } from "@/lib/jobs/profile-matcher";
-import { DEFAULT_PROFILE, type JobProfile } from "@/types/job-hunt";
 
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(Number(searchParams.get("limit") ?? "80") || 80, 120);
-
-  const profile: JobProfile = {
-    ...DEFAULT_PROFILE,
-    headline: searchParams.get("headline") ?? DEFAULT_PROFILE.headline,
-    skills: searchParams.get("skills") ?? DEFAULT_PROFILE.skills,
-    keywords: searchParams.get("keywords") ?? DEFAULT_PROFILE.keywords,
-    location: searchParams.get("location") ?? DEFAULT_PROFILE.location,
-  };
+  const profile = profileFromSearchParams(searchParams);
+  const searchTerms = buildSearchTermsFromProfile(profile);
 
   try {
-    const all = await fetchAllJobsIncludingLinkedIn();
+    const all = await fetchAllJobsIncludingLinkedIn(profile);
     const jobs = rankJobsForProfile(all, profile, limit);
 
     return NextResponse.json({
       profileName: profile.fullName,
       filters: {
-        exclude: "estágio / internship; presencial fora de SP e Santos",
-        focus: "trainee e júnior (dev)",
-        stretch: "skills levemente expandidas (React↔Next, Node↔Express, etc.)",
+        exclude: "estágio / internship; sênior / liderança",
+        focus: `perfil: ${profile.headline || "skills e palavras-chave"}`,
+        searchTerms: searchTerms.slice(0, 6),
+        stretch: "sinônimos leves nas skills (ex.: React↔Next)",
       },
       scanned: all.length,
       count: jobs.length,

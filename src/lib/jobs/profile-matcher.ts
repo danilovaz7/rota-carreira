@@ -14,9 +14,6 @@ const MID_LEVEL_RE =
 const JUNIOR_RE =
   /\b(j[uú]nior|\bjr\.?\b|trainee|entry[- ]level|graduat|in[ií]cio\s+de\s+carreira|primeiro\s+emprego|0\s*[-–]\s*2\s*anos|1\s*[-–]\s*3\s*anos|2\s*[-–]\s*4\s*anos|at[eé]\s*2\s*anos|at[eé]\s*3\s*anos)\b/i;
 
-const DEV_ROLE_RE =
-  /\b(desenvolvedor|developer|software|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web\s+dev|react|node|typescript|javascript|engenharia\s+de\s+software|analista\s+de\s+desenvolvimento|power\s+platform|power\s+apps|devops|mobile\s+dev|react\s+native)\b/i;
-
 const DEV_TITLE_RE =
   /\b(desenvolvedor|desenvolvedora|developer|software|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web|react|node|typescript|javascript|java|python|php|\.net|c#|programador[a]?\s+(de\s+)?(sistemas|web|software|full|front|back|java|python|php|react|node|\.net)|analista\s+de\s+(sistemas|desenvolvimento)|engenheir[oa]\s+de\s+software|engenharia\s+de\s+software|power\s+platform|power\s+apps|rpa|devops|mobile|android|ios|qa)\b/i;
 
@@ -31,6 +28,9 @@ const STRETCH: Record<string, string[]> = {
   javascript: ["typescript", "ecmascript", "node", "react"],
   mysql: ["sql", "postgres", "postgresql", "mongodb", "banco de dados"],
   "power platform": ["power apps", "power automate", "power bi", "microsoft"],
+  quimica: ["quimico", "quimicos", "quimica", "petroquimico", "petroquimica"],
+  "engenharia quimica": ["engenheiro quimico", "engenheira quimica", "processos quimicos"],
+  processos: ["processo", "industrial", "operacional", "producao"],
 };
 
 function normalize(text: string): string {
@@ -38,8 +38,34 @@ function normalize(text: string): string {
 }
 
 function parseSkillTokens(profile: JobProfile): string[] {
-  const raw = `${profile.skills},${profile.keywords}`;
-  return [...new Set(raw.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean))];
+  const raw = `${profile.headline},${profile.skills},${profile.keywords},${profile.resumeSummary}`;
+  const fromList = raw.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
+  const fromWords = normalize(raw)
+    .split(/\s+/)
+    .filter((w) => w.length >= 4);
+  return [...new Set([...fromList, ...fromWords])];
+}
+
+function jobMatchesProfileFocus(blob: string, title: string, tokens: string[]): boolean {
+  if (!tokens.length) return DEV_TITLE_RE.test(normalize(title));
+
+  const titleNorm = normalize(title);
+  let titleHits = 0;
+  let blobHits = 0;
+
+  for (const skill of tokens) {
+    const variants = expandSkill(skill);
+    for (const v of variants) {
+      if (v.length < 3) continue;
+      if (titleNorm.includes(v)) titleHits += 1;
+      if (blob.includes(v)) blobHits += 1;
+    }
+  }
+
+  if (titleHits >= 1) return true;
+  if (blobHits >= 2) return true;
+  if (JUNIOR_RE.test(titleNorm) && blobHits >= 1) return true;
+  return false;
 }
 
 function expandSkill(skill: string): string[] {
@@ -71,11 +97,9 @@ export function scoreJobForProfile(
 
   const title = normalize(job.title);
   if (NON_DEV_RE.test(`${title} ${normalize(job.company)}`)) return null;
-  const devTitle = DEV_TITLE_RE.test(title);
-  const techTrainee =
-    /\btrainee\b/.test(title) &&
-    /\b(tecnologia|\bti\b|tech|software|sistemas|desenvolvimento de sistemas|engenharia de software)\b/.test(title);
-  if (!devTitle && !techTrainee) return null;
+
+  const skills = parseSkillTokens(profile);
+  if (!jobMatchesProfileFocus(blob, job.title, skills)) return null;
 
   const reasons: string[] = [];
   let score = 0;
@@ -93,7 +117,6 @@ export function scoreJobForProfile(
     return null;
   }
 
-  const skills = parseSkillTokens(profile);
   let matched = 0;
   const matchedLabels: string[] = [];
 
