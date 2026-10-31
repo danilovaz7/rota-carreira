@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  GraduationCap,
   MapPin,
   RefreshCw,
   SearchX,
@@ -22,6 +23,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Application, ApplicationStatus, JobProfile } from "@/types/job-hunt";
 import type { ScoredJob } from "@/lib/jobs/types";
+import { isInternshipJob } from "@/lib/jobs/profile-matcher";
 import { newApplicationId, saveApplications } from "@/lib/storage";
 import { MONITORED_COMPANIES } from "@/lib/jobs/company-sources";
 
@@ -159,6 +161,7 @@ export function ForYouJobs({
   const [workplaceFilter, setWorkplaceFilter] = useState<WorkplaceFilter>("all");
   const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const [onlyNew, setOnlyNew] = useState(false);
+  const [onlyInternships, setOnlyInternships] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("fit");
   const [showSent, setShowSent] = useState(false);
 
@@ -175,13 +178,16 @@ export function ForYouJobs({
     [data, sentUrls],
   );
 
+  const onlyInternshipFilter = profile.includeInternships && onlyInternships;
+
   const visibleJobs = useMemo(() => {
     const jobs = (data?.jobs ?? []).filter(
       (j) =>
         (showSent || !sentUrls.has(j.url)) &&
         (workplaceFilter === "all" || j.workplace === workplaceFilter) &&
         (originFilter === "all" || originOf(j) === originFilter) &&
-        (!onlyNew || j.isNew),
+        (!onlyNew || j.isNew) &&
+        (!onlyInternshipFilter || isInternshipJob(j)),
     );
     if (sortMode === "newest") {
       return [...jobs].sort(
@@ -189,7 +195,14 @@ export function ForYouJobs({
       );
     }
     return jobs;
-  }, [data, workplaceFilter, originFilter, onlyNew, sortMode, showSent, sentUrls]);
+  }, [data, workplaceFilter, originFilter, onlyNew, onlyInternshipFilter, sortMode, showSent, sentUrls]);
+
+  const internshipCount = useMemo(() => {
+    if (!profile.includeInternships) return 0;
+    return (data?.jobs ?? []).filter(
+      (j) => (showSent || !sentUrls.has(j.url)) && isInternshipJob(j),
+    ).length;
+  }, [data, profile.includeInternships, showSent, sentUrls]);
 
   const originCounts = useMemo(() => {
     const counts: Partial<Record<Exclude<OriginFilter, "all">, number>> = {};
@@ -357,6 +370,22 @@ export function ForYouJobs({
             <Sparkles className="size-3.5" />
             Só novas
           </Chip>
+          {profile.includeInternships && (
+            <Chip active={onlyInternshipFilter} onClick={() => setOnlyInternships((v) => !v)}>
+              <GraduationCap className="size-3.5" />
+              Só estágio
+              {internshipCount > 0 && (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-xs tabular-nums",
+                    onlyInternshipFilter ? "bg-white/20" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {internshipCount}
+                </span>
+              )}
+            </Chip>
+          )}
           <Chip
             active={sortMode === "newest"}
             onClick={() => setSortMode((m) => (m === "fit" ? "newest" : "fit"))}

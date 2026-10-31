@@ -4,6 +4,12 @@ import type { ScoredJob, UnifiedJob } from "@/lib/jobs/types";
 const INTERNSHIP_RE =
   /\b(est[aá]gio|estagi[aá]rio|internship|\bintern\b|apprentice|pasant[ií]a|trainee\s+program\s+intern)\b/i;
 
+export function isInternshipJob(job: UnifiedJob): boolean {
+  return INTERNSHIP_RE.test(
+    `${job.title} ${job.tags.join(" ")} ${job.description ?? ""}`.toLowerCase(),
+  );
+}
+
 const SENIOR_RE =
   /\b(senior|s[eê]nior|staff|principal|director|diretor|head of|lead\b|leader|lider|tech lead|chapter lead|\bsr\.?\b|pleno\s+s[eê]nior|coordenador|coordenadora|coordenacao|coordinator|master|gerente|manager|arquiteto|arquiteta|architect|5\+?\s*years|7\+?\s*years|10\+?\s*years|15\+?\s*years)\b/i;
 
