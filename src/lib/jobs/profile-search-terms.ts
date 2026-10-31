@@ -102,45 +102,41 @@ export function buildSearchTermsFromProfile(profile: JobProfile, max = 10): stri
   return out.slice(0, max);
 }
 
-/** Busca ampla só de estágio — não exige bater skills na vaga. */
-export function buildInternshipSearchTerms(profile: JobProfile, max = 14): string[] {
+/** Busca de estágio ligada à área do perfil (sem “estágio” genérico solto). */
+export function buildInternshipSearchTerms(profile: JobProfile, max = 12): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const add = (raw: string) => {
     const t = raw.trim().replace(/\s+/g, " ");
-    if (t.length < 3) return;
+    if (t.length < 5) return;
+    if (/^est[aá]gio$/i.test(t)) return;
     const key = normalize(t);
     if (seen.has(key)) return;
     seen.add(key);
     out.push(t);
   };
 
-  add("estágio");
-  add("estagiário");
-  add("estagiaria");
-  add("vaga de estágio");
-  add("programa de estágio");
-  add("trainee");
-
   const headline = profile.headline.trim();
   if (headline) {
     add(`estágio ${headline}`);
+    add(`${headline} estagiário`);
     const short = headline.split(/\s+/).slice(0, 3).join(" ");
     if (short !== headline) add(`estágio ${short}`);
   }
 
-  for (const chunk of profile.keywords.split(/[,;\n]+/).slice(0, 4)) {
+  for (const chunk of profile.keywords.split(/[,;\n]+/).slice(0, 6)) {
     const k = chunk.trim();
     if (k.length >= 3) add(`estágio ${k}`);
   }
 
-  for (const skill of profile.skills.split(/[,;\n]+/).slice(0, 3)) {
+  for (const skill of profile.skills.split(/[,;\n]+/).slice(0, 6)) {
     const s = skill.trim();
-    if (s.length >= 4 && s.split(/\s+/).length <= 4) add(`estágio ${s}`);
+    if (s.length >= 3 && s.split(/\s+/).length <= 5) add(`estágio ${s}`);
   }
 
-  const city = profile.location.split(",")[0]?.trim();
-  if (city && city.length >= 3) add(`estágio ${city}`);
+  if (out.length === 0 && headline) {
+    return [`estágio ${headline}`, `${headline} estagiário`].slice(0, max);
+  }
 
   return out.slice(0, max);
 }

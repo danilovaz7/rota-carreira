@@ -52,6 +52,30 @@ function parseSkillTokens(profile: JobProfile): string[] {
   return [...new Set([...fromList, ...fromWords])];
 }
 
+/** Estágio: precisa ter relação com a área, mas aceita 1 palavra forte no título. */
+function internshipMatchesProfile(blob: string, title: string, tokens: string[]): boolean {
+  if (jobMatchesProfileFocus(blob, title, tokens)) return true;
+
+  const titleNorm = normalize(title);
+  for (const skill of tokens) {
+    const trimmed = skill.trim();
+    if (trimmed.length < 4) continue;
+    for (const v of expandSkill(trimmed)) {
+      if (v.length < 4) continue;
+      if (titleNorm.includes(v)) return true;
+    }
+  }
+
+  let blobHits = 0;
+  for (const skill of tokens) {
+    if (skill.trim().length < 4) continue;
+    for (const v of expandSkill(skill)) {
+      if (v.length >= 5 && blob.includes(v)) blobHits += 1;
+    }
+  }
+  return blobHits >= 2;
+}
+
 function jobMatchesProfileFocus(blob: string, title: string, tokens: string[]): boolean {
   if (!tokens.length) return DEV_TITLE_RE.test(normalize(title));
 
@@ -106,8 +130,11 @@ function scoreInternshipJob(
   const title = normalize(job.title);
   if (SENIOR_RE.test(title)) return null;
 
-  const reasons: string[] = ["Estágio / estagiário"];
-  let score = 42;
+  const skills = parseSkillTokens(profile);
+  if (!internshipMatchesProfile(blob, job.title, skills)) return null;
+
+  const reasons: string[] = ["Estágio na sua área"];
+  let score = 38;
 
   const workplace = resolveWorkplace(job, blob);
   const location = normalize(job.location);
@@ -130,7 +157,6 @@ function scoreInternshipJob(
     reasons.push(`Site da ${job.company}`);
   }
 
-  const skills = parseSkillTokens(profile);
   const matchedLabels: string[] = [];
   for (const skill of skills) {
     const variants = expandSkill(skill);
@@ -335,7 +361,7 @@ export function rankJobsForProfile(
 
   const interns = scored.filter((j) => isInternshipJob(j));
   const others = scored.filter((j) => !isInternshipJob(j));
-  const internSlots = Math.round(limit * 0.7);
+  const internSlots = Math.round(limit * 0.55);
   const seen = new Set<string>();
   const out = [...takeUnique(interns, seen, internSlots)];
   out.push(...takeUnique(others, seen, limit - out.length));

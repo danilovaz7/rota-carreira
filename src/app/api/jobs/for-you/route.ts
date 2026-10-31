@@ -32,7 +32,9 @@ export async function GET(request: Request) {
         focus: `perfil: ${profile.headline || "skills e palavras-chave"}`,
         searchTerms: searchTerms.slice(0, 6),
         internshipTerms: internshipTerms.slice(0, 6),
-        mix: profile.includeInternships ? "~70% estágio na lista Para você" : undefined,
+        mix: profile.includeInternships
+          ? "~55% estágio (só na área do perfil) na lista Para você"
+          : undefined,
         stretch: "sinônimos leves nas skills (ex.: React↔Next)",
       },
       scanned: all.length,
