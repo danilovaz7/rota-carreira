@@ -86,7 +86,7 @@ export function JobHuntApp() {
   const firstName = profile.fullName.trim().split(/\s+/)[0];
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-16 pt-6 sm:px-6 sm:pt-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:max-w-5xl">
       <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-5 text-white shadow-lg shadow-indigo-600/20 sm:p-7">
         <div
           aria-hidden
@@ -137,15 +137,15 @@ export function JobHuntApp() {
       </header>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full gap-4">
-        <TabsList className="scrollbar-none h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-card p-1.5 shadow-xs ring-1 ring-border">
+        <TabsList className="h-auto w-full gap-1 rounded-2xl bg-card p-1.5 shadow-xs ring-1 ring-border max-md:flex max-md:justify-start max-md:overflow-x-auto max-md:[scrollbar-width:thin] max-md:[&::-webkit-scrollbar]:h-1.5 max-md:[&::-webkit-scrollbar-thumb]:rounded-full max-md:[&::-webkit-scrollbar-thumb]:bg-border md:grid md:grid-cols-4 md:overflow-visible md:gap-1.5 md:p-2 lg:grid-cols-7 lg:gap-1">
           {TABS.map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
               value={value}
-              className="shrink-0 gap-1.5 rounded-xl px-3 py-2 data-active:bg-primary data-active:text-primary-foreground"
+              className="max-md:shrink-0 gap-1.5 rounded-xl px-3 py-2 md:w-full md:min-w-0 md:justify-center md:px-2 md:py-2.5 md:text-sm lg:py-2.5 xl:px-3 xl:py-3 data-active:bg-primary data-active:text-primary-foreground"
             >
-              <Icon className="size-4" />
-              {label}
+              <Icon className="size-4 shrink-0 md:size-[1.125rem] xl:size-5" />
+              <span className="truncate">{label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
