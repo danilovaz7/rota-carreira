@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { JobProfile } from "@/types/job-hunt";
 import { saveProfile } from "@/lib/storage";
 
@@ -102,6 +103,25 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
             onChange={(e) => update({ linkedInUrl: e.target.value })}
             placeholder="https://linkedin.com/in/..."
           />
+        </div>
+        <div className="flex items-start gap-3 rounded-xl border bg-muted/30 p-4 sm:col-span-2">
+          <Checkbox
+            id="includeInternships"
+            checked={profile.includeInternships}
+            onCheckedChange={(checked) =>
+              update({ includeInternships: checked === true })
+            }
+            className="mt-0.5"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="includeInternships" className="cursor-pointer font-medium">
+              Incluir vagas de estágio
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Desmarcado (padrão): só trainee, júnior e entry level — estágios ficam
+              de fora. Marcado: estágio e estagiário também aparecem em Para você.
+            </p>
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="goal">Meta diária de candidaturas</Label>

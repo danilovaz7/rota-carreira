@@ -197,7 +197,7 @@ export async function fetchAllJobsIncludingLinkedIn(profile?: JobProfile): Promi
   const results = await Promise.all(
     [
       fetchLinkedInBrazilJobs(searchTerms),
-      fetchAllCompanySiteJobs(searchTerms),
+      fetchAllCompanySiteJobs(searchTerms, profile?.includeInternships ?? false),
       fetchAllUnifiedJobs(),
     ].map(withDeadline),
   );

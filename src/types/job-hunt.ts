@@ -15,6 +15,8 @@ export type JobProfile = {
   linkedInUrl: string;
   resumeSummary: string;
   dailyApplyGoal: number;
+  /** Se true, estágio e programas de estagiário entram na aba Para você. */
+  includeInternships: boolean;
 };
 
 export type Application = {
@@ -43,6 +45,7 @@ export const DEFAULT_PROFILE: JobProfile = {
   resumeSummary:
     "Full Stack em formação (Fatec ADS), com freelance em plataforma web (ForumPsico/Kolmeia), automações Power Platform na DP World e projetos React/Node (Play2Learn, portfólio). Inglês avançado.",
   dailyApplyGoal: 5,
+  includeInternships: false,
 };
 
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {

@@ -77,9 +77,14 @@ function expandSkill(skill: string): string[] {
   return [key, ...extra.map(normalize)];
 }
 
-export function isExcludedJob(job: UnifiedJob): boolean {
+export function isExcludedJob(job: UnifiedJob, includeInternships = false): boolean {
   const title = normalize(job.title);
-  if (INTERNSHIP_RE.test(normalize(`${job.title} ${job.tags.join(" ")}`))) return true;
+  if (
+    !includeInternships &&
+    INTERNSHIP_RE.test(normalize(`${job.title} ${job.tags.join(" ")}`))
+  ) {
+    return true;
+  }
   if (SENIOR_RE.test(title)) return true;
   return MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title);
 }
@@ -89,7 +94,7 @@ export function scoreJobForProfile(
   profile: JobProfile,
   now: number,
 ): ScoredJob | null {
-  if (isExcludedJob(job)) return null;
+  if (isExcludedJob(job, profile.includeInternships)) return null;
 
   const blob = normalize(
     `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,

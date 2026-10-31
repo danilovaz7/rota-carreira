@@ -19,7 +19,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       profileName: profile.fullName,
       filters: {
-        exclude: "estágio / internship; sênior / liderança",
+        exclude: profile.includeInternships
+          ? "sênior / liderança (estágios incluídos)"
+          : "estágio / internship; sênior / liderança",
         focus: `perfil: ${profile.headline || "skills e palavras-chave"}`,
         searchTerms: searchTerms.slice(0, 6),
         stretch: "sinônimos leves nas skills (ex.: React↔Next)",

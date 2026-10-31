@@ -17,5 +17,6 @@ export function profileFromSearchParams(searchParams: URLSearchParams): JobProfi
     yearsExperience: pick("yearsExperience", DEFAULT_PROFILE.yearsExperience),
     linkedInUrl: pick("linkedInUrl", DEFAULT_PROFILE.linkedInUrl),
     dailyApplyGoal: Number(searchParams.get("dailyApplyGoal")) || DEFAULT_PROFILE.dailyApplyGoal,
+    includeInternships: searchParams.get("includeInternships") === "true",
   };
 }

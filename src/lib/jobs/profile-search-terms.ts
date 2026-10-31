@@ -56,6 +56,7 @@ function normalize(text: string): string {
 
 /** Termos de busca no LinkedIn/Gupy a partir do perfil (não só TI). */
 export function buildSearchTermsFromProfile(profile: JobProfile, max = 10): string[] {
+  const allowInternship = profile.includeInternships;
   const seen = new Set<string>();
   const add = (raw: string) => {
     const t = raw.trim().replace(/\s+/g, " ");
@@ -73,9 +74,10 @@ export function buildSearchTermsFromProfile(profile: JobProfile, max = 10): stri
   const headline = profile.headline.trim();
   if (headline) {
     add(headline);
-    if (!/\b(j[uú]nior|trainee|jr\.?)\b/i.test(headline)) {
+    if (!/\b(j[uú]nior|trainee|jr\.?|est[aá]gio)\b/i.test(headline)) {
       add(`${headline} júnior`);
       add(`${headline} trainee`);
+      if (allowInternship) add(`${headline} estágio`);
     }
   }
 
@@ -100,6 +102,11 @@ export function buildSearchTermsFromProfile(profile: JobProfile, max = 10): stri
       "assistente",
       "técnico",
     ];
+  }
+
+  if (allowInternship) {
+    add("estágio");
+    if (headline) add(`estágio ${headline.split(/\s+/).slice(0, 3).join(" ")}`);
   }
 
   return out.slice(0, max);

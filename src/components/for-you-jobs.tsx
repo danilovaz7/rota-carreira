@@ -218,6 +218,7 @@ export function ForYouJobs({
         keywords: profile.keywords,
         location: profile.location,
         resumeSummary: profile.resumeSummary,
+        includeInternships: String(profile.includeInternships),
       });
       const res = await fetch(`/api/jobs/for-you?${params}`);
       const json = (await res.json()) as ApiResponse & { error?: string };

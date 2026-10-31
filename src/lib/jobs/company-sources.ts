@@ -243,9 +243,12 @@ function gupyCompanyName(job: GupyJob): string {
   return sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : "Empresa (Gupy)";
 }
 
-export async function fetchGupyJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
+export async function fetchGupyJobs(
+  searchTerms?: string[],
+  includeInternships = false,
+): Promise<UnifiedJob[]> {
   const terms = searchTerms?.length ? searchTerms.slice(0, 12) : GUPY_TERMS;
-  const cacheKey = `gupy:${terms.join("|").slice(0, 240)}`;
+  const cacheKey = `gupy:${includeInternships ? "i:" : ""}${terms.join("|").slice(0, 240)}`;
   return cached(cacheKey, async () => {
     const pages = terms.flatMap((term) => [0, 100, 200].map((offset) => ({ term, offset })));
     const results = await mapLimit(pages, 5, async ({ term, offset }) => {
@@ -261,8 +264,12 @@ export async function fetchGupyJobs(searchTerms?: string[]): Promise<UnifiedJob[
     const byId = new Map<number, GupyJob>();
     for (const page of results) for (const j of page) byId.set(j.id, j);
 
+    const excludedTypes = includeInternships
+      ? new Set(["vacancy_type_talent_pool"])
+      : EXCLUDED_GUPY_TYPES;
+
     return [...byId.values()]
-      .filter((j) => !EXCLUDED_GUPY_TYPES.has(j.type ?? ""))
+      .filter((j) => !excludedTypes.has(j.type ?? ""))
       .map((j) => ({
         id: `gupy-${j.id}`,
         source: "Gupy" as const,
@@ -270,7 +277,12 @@ export async function fetchGupyJobs(searchTerms?: string[]): Promise<UnifiedJob[
         company: gupyCompanyName(j),
         url: j.jobUrl.split("?")[0],
         location: [j.city, j.state].filter(Boolean).join(", "),
-        tags: j.type === "vacancy_type_trainee" ? ["trainee"] : [],
+        tags:
+          j.type === "vacancy_type_trainee"
+            ? ["trainee"]
+            : j.type === "vacancy_type_internship" || j.type === "vacancy_type_apprentice"
+              ? ["estágio"]
+              : [],
         publishedAt: j.publishedDate,
         description: j.description?.slice(0, 3000),
         workplace: j.workplaceType === "remote" ? ("remote" as const) : ("onsite" as const),
@@ -289,9 +301,12 @@ export async function fetchCompanyBoardJobs(): Promise<UnifiedJob[]> {
   });
 }
 
-export async function fetchAllCompanySiteJobs(searchTerms?: string[]): Promise<UnifiedJob[]> {
+export async function fetchAllCompanySiteJobs(
+  searchTerms?: string[],
+  includeInternships = false,
+): Promise<UnifiedJob[]> {
   const results = await Promise.allSettled([
-    fetchGupyJobs(searchTerms),
+    fetchGupyJobs(searchTerms, includeInternships),
     fetchCompanyBoardJobs(),
     fetchMercadoLivreJobs(),
   ]);
