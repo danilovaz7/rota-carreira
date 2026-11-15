@@ -48,6 +48,7 @@ export function normalizeProfile(input: unknown): JobProfile {
     extraCities: str(p.extraCities, d.extraCities),
     maxAgeDays: num(p.maxAgeDays, d.maxAgeDays, 1, 60),
     minScore: num(p.minScore, d.minScore, 0, 90),
+    preferCompanySites: bool(p.preferCompanySites, d.preferCompanySites),
     sources: {
       linkedin: bool(src.linkedin, DEFAULT_SOURCES.linkedin),
       gupy: bool(src.gupy, DEFAULT_SOURCES.gupy),

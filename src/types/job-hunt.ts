@@ -43,6 +43,8 @@ export type JobProfile = {
   maxAgeDays: number;
   /** Encaixe mínimo (0–100) para a vaga aparecer. */
   minScore: number;
+  /** Dá mais pontos para vagas no site da própria empresa (Gupy, páginas de carreira). */
+  preferCompanySites: boolean;
   sources: JobSourceToggles;
 };
 
@@ -92,6 +94,7 @@ export const DEFAULT_PROFILE: JobProfile = {
   extraCities: "",
   maxAgeDays: 21,
   minScore: 30,
+  preferCompanySites: true,
   sources: DEFAULT_SOURCES,
 };
 
