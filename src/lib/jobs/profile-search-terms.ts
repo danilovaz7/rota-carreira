@@ -1,142 +1,236 @@
 import type { JobProfile } from "@/types/job-hunt";
 
-const STOP = new Set([
-  "para",
-  "com",
-  "sem",
-  "dos",
-  "das",
-  "nos",
-  "nas",
-  "uma",
-  "uns",
-  "the",
-  "and",
-  "de",
-  "da",
-  "do",
-  "em",
-  "na",
-  "no",
-  "ou",
-  "e",
-  "a",
-  "o",
-  "as",
-  "os",
-  "que",
-  "por",
-  "como",
-  "mais",
-  "seu",
-  "sua",
-  "anos",
-  "experiencia",
-  "formacao",
-  "curso",
-  "universidade",
-  "linkedin",
-  "remoto",
-  "santos",
-  "paulo",
-  "brasil",
-  "junior",
-  "trainee",
-  "pleno",
-  "senior",
-  "estagio",
-  "estagiario",
-  "estagiaria",
-]);
-
-function normalize(text: string): string {
-  return text
+/**
+ * Normaliza texto para comparação: minúsculas, sem acentos e com as grafias
+ * comuns de tecnologias unificadas (fullstack → full stack, node.js → node…).
+ */
+export function normalizeText(text: string): string {
+  return ` ${text} `
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
-    .replace(/[^\p{L}\p{N}\s/+.-]/gu, " ");
+    .replace(/full[\s-]?stack/g, "full stack")
+    .replace(/front[\s-]?end/g, "front end")
+    .replace(/back[\s-]?end/g, "back end")
+    .replace(/\bnode\.?js\b/g, "node")
+    .replace(/\bnext\.?js\b/g, "next")
+    .replace(/\breact\.?js\b/g, "react")
+    .replace(/\bvue\.?js\b/g, "vue")
+    .replace(/\bnest\.?js\b/g, "nestjs")
+    .replace(/[^\p{L}\p{N}#+.\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-/** Termos de busca no LinkedIn/Gupy a partir do perfil (não só TI). */
-export function buildSearchTermsFromProfile(profile: JobProfile, max = 10): string[] {
+const termRegexCache = new Map<string, RegExp>();
+
+/** True se `term` aparece em `text` como palavra/expressão inteira (ambos já normalizados). */
+export function hasTerm(text: string, term: string): boolean {
+  if (!term) return false;
+  let re = termRegexCache.get(term);
+  if (!re) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    re = new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?:[^\\p{L}\\p{N}]|$)`, "u");
+    termRegexCache.set(term, re);
+  }
+  return re.test(text);
+}
+
+/** Itens separados por vírgula, ponto e vírgula ou quebra de linha. */
+export function splitList(text: string): string[] {
+  return text
+    .split(/[,;\n]+/)
+    .map((s) => s.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+}
+
+/** Palavras de nível: ajudam na busca, mas não dizem a área da vaga. */
+export const LEVEL_WORDS = new Set([
+  "junior",
+  "jr",
+  "jr.",
+  "trainee",
+  "pleno",
+  "senior",
+  "sr",
+  "estagio",
+  "estagiario",
+  "estagiaria",
+  "entry",
+  "level",
+]);
+
+/** Localização já é tratada pelos filtros de região/remoto. */
+const LOCATION_WORDS = new Set([
+  "remoto",
+  "remota",
+  "remote",
+  "hibrido",
+  "hibrida",
+  "presencial",
+  "home",
+  "office",
+  "santos",
+  "sao",
+  "paulo",
+  "sp",
+  "brasil",
+  "brazil",
+  "baixada",
+  "santista",
+]);
+
+const STOP_WORDS = new Set(["de", "da", "do", "das", "dos", "em", "e", "para", "com", "a", "o", "of", "and"]);
+
+/** Uma busca com mais palavras que isso quase nunca encontra vaga. */
+export const MAX_WORDS_PER_SEARCH = 6;
+
+/** Remove palavras de localização de uma busca, mantendo a grafia original do resto. */
+export function cleanSearchPhrase(raw: string): string {
+  return raw
+    .replace(/\([^)]*\)/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !LOCATION_WORDS.has(normalizeText(w)))
+    .join(" ")
+    .trim();
+}
+
+function hasLevelWord(phrase: string): boolean {
+  return normalizeText(phrase)
+    .split(" ")
+    .some((w) => LEVEL_WORDS.has(w));
+}
+
+/** Palavras que definem a área de uma busca/título (sem nível, local e conectivos). */
+export function coreWords(phrase: string): string[] {
+  return normalizeText(cleanSearchPhrase(phrase))
+    .split(" ")
+    .filter((w) => w.length >= 2 && !LEVEL_WORDS.has(w) && !STOP_WORDS.has(w));
+}
+
+export type KeywordAnalysis = {
+  /** Buscas que serão feitas no LinkedIn e na Gupy, na ordem. */
+  searches: string[];
+  /** Avisos para mostrar no perfil. */
+  issues: string[];
+};
+
+/** Skills que sozinhas não dizem a área (servem para nota, não para busca). */
+export const WEAK_SKILLS = new Set([
+  "git",
+  "github",
+  "gitlab",
+  "excel",
+  "scrum",
+  "kanban",
+  "figma",
+  "html",
+  "css",
+  "html5",
+  "css3",
+  "sql",
+  "vs code",
+  "docker",
+  "jira",
+  "apis rest",
+  "rest apis",
+  "api rest",
+  "tailwind css",
+  "tailwind",
+]);
+
+export function analyzeKeywords(profile: JobProfile, max = 8): KeywordAnalysis {
   const seen = new Set<string>();
-  const add = (raw: string, list: string[]) => {
+  const searches: string[] = [];
+  const issues: string[] = [];
+
+  const add = (raw: string) => {
     const t = raw.trim().replace(/\s+/g, " ");
-    if (t.length < 3) return;
-    const key = normalize(t);
+    if (t.length < 3 || searches.length >= max) return;
+    const key = normalizeText(t);
     if (seen.has(key)) return;
     seen.add(key);
-    list.push(t);
+    searches.push(t);
   };
 
-  const out: string[] = [];
-
-  for (const chunk of profile.keywords.split(/[,;\n]+/)) add(chunk, out);
-
-  const headline = profile.headline.trim();
-  if (headline) {
-    add(headline, out);
-    if (!/\b(j[uú]nior|trainee|jr\.?|est[aá]gio)\b/i.test(headline)) {
-      add(`${headline} júnior`, out);
-      add(`${headline} trainee`, out);
+  for (const chunk of splitList(profile.keywords)) {
+    const cleaned = cleanSearchPhrase(chunk);
+    if (cleaned !== chunk.trim()) {
+      issues.push(
+        `"${chunk}": tirei as palavras de local. Remoto e regiões são escolhidos em "Onde trabalhar".`,
+      );
     }
-  }
-
-  const skillParts = profile.skills.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
-  for (const skill of skillParts.slice(0, 8)) {
-    add(skill, out);
-    if (skill.split(/\s+/).length <= 4 && !/\b(j[uú]nior|trainee)\b/i.test(skill)) {
-      add(`${skill} júnior`, out);
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    if (words.length > MAX_WORDS_PER_SEARCH) {
+      issues.push(
+        `"${chunk}" tem ${words.length} palavras e quase nenhuma vaga tem todas. Separe as buscas por vírgula (ex.: desenvolvedor react júnior, power platform). Essa busca foi ignorada.`,
+      );
+      continue;
     }
+    add(cleaned);
   }
 
-  const resumeWords = normalize(profile.resumeSummary)
-    .split(/\s+/)
-    .filter((w) => w.length >= 5 && !STOP.has(w));
-  for (const w of [...new Set(resumeWords)].slice(0, 4)) add(w, out);
-
-  if (out.length === 0) {
-    return ["trainee", "júnior", "analista junior", "assistente", "técnico"];
+  const headline = cleanSearchPhrase(profile.headline);
+  if (headline && headline.split(/\s+/).length <= MAX_WORDS_PER_SEARCH) {
+    add(hasLevelWord(headline) ? headline : `${headline} júnior`);
   }
 
-  return out.slice(0, max);
+  for (const skill of splitList(profile.skills)) {
+    if (searches.length >= max) break;
+    if (WEAK_SKILLS.has(normalizeText(skill))) continue;
+    if (skill.split(/\s+/).length > 4) continue;
+    add(hasLevelWord(skill) ? skill : `${skill} júnior`);
+  }
+
+  if (searches.length === 0) {
+    issues.push("Nenhuma busca válida: preencha palavras-chave ou o título profissional.");
+    return { searches: ["desenvolvedor júnior", "trainee tecnologia"], issues };
+  }
+
+  return { searches, issues };
 }
 
-/** Busca de estágio ligada à área do perfil (sem “estágio” genérico solto). */
-export function buildInternshipSearchTerms(profile: JobProfile, max = 12): string[] {
+/** Termos de busca no LinkedIn/Gupy a partir do perfil. */
+export function buildSearchTermsFromProfile(profile: JobProfile, max = 8): string[] {
+  return analyzeKeywords(profile, max).searches;
+}
+
+/** Primeira busca do perfil, para os links prontos (LinkedIn, Indeed, Google). */
+export function primaryKeyword(profile: JobProfile): string {
+  return buildSearchTermsFromProfile(profile, 1)[0] ?? profile.headline;
+}
+
+/** Busca de estágio ligada à área do perfil (sem "estágio" genérico solto). */
+export function buildInternshipSearchTerms(profile: JobProfile, max = 8): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const add = (raw: string) => {
     const t = raw.trim().replace(/\s+/g, " ");
-    if (t.length < 5) return;
-    if (/^est[aá]gio$/i.test(t)) return;
-    const key = normalize(t);
+    if (t.length < 5 || out.length >= max) return;
+    const key = normalizeText(t);
     if (seen.has(key)) return;
     seen.add(key);
     out.push(t);
   };
 
-  const headline = profile.headline.trim();
-  if (headline) {
-    add(`estágio ${headline}`);
-    add(`${headline} estagiário`);
-    const short = headline.split(/\s+/).slice(0, 3).join(" ");
-    if (short !== headline) add(`estágio ${short}`);
+  const stripLevel = (phrase: string) =>
+    cleanSearchPhrase(phrase)
+      .split(/\s+/)
+      .filter((w) => !LEVEL_WORDS.has(normalizeText(w)))
+      .join(" ");
+
+  const headline = stripLevel(profile.headline);
+  if (headline) add(`estágio ${headline}`);
+
+  for (const chunk of splitList(profile.keywords)) {
+    const k = stripLevel(chunk);
+    if (k.length >= 3 && k.split(/\s+/).length <= MAX_WORDS_PER_SEARCH) add(`estágio ${k}`);
   }
 
-  for (const chunk of profile.keywords.split(/[,;\n]+/).slice(0, 6)) {
-    const k = chunk.trim();
-    if (k.length >= 3) add(`estágio ${k}`);
+  for (const skill of splitList(profile.skills)) {
+    if (WEAK_SKILLS.has(normalizeText(skill))) continue;
+    if (skill.split(/\s+/).length <= 4) add(`estágio ${skill}`);
   }
 
-  for (const skill of profile.skills.split(/[,;\n]+/).slice(0, 6)) {
-    const s = skill.trim();
-    if (s.length >= 3 && s.split(/\s+/).length <= 5) add(`estágio ${s}`);
-  }
-
-  if (out.length === 0 && headline) {
-    return [`estágio ${headline}`, `${headline} estagiário`].slice(0, max);
-  }
-
-  return out.slice(0, max);
+  return out;
 }

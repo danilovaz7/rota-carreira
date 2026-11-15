@@ -194,12 +194,24 @@ function withDeadline(promise: Promise<UnifiedJob[]>): Promise<UnifiedJob[]> {
 
 export async function fetchAllJobsIncludingLinkedIn(profile?: JobProfile): Promise<UnifiedJob[]> {
   const searchTerms = profile ? buildSearchTermsFromProfile(profile) : undefined;
-  const results = await Promise.all(
-    [
-      fetchLinkedInBrazilJobs(searchTerms, profile),
-      fetchAllCompanySiteJobs(searchTerms, profile?.includeInternships ?? false, profile),
-      fetchAllUnifiedJobs(),
-    ].map(withDeadline),
-  );
+  const sources = profile?.sources ?? {
+    linkedin: true,
+    gupy: true,
+    companies: true,
+    remoteBoards: true,
+  };
+  const tasks: Promise<UnifiedJob[]>[] = [];
+  if (sources.linkedin) tasks.push(fetchLinkedInBrazilJobs(searchTerms, profile));
+  if (sources.gupy || sources.companies) {
+    tasks.push(
+      fetchAllCompanySiteJobs(searchTerms, profile?.includeInternships ?? false, profile, {
+        gupy: sources.gupy,
+        companies: sources.companies,
+      }),
+    );
+  }
+  // Vagas remotas internacionais só fazem sentido se o perfil aceita remoto.
+  if (sources.remoteBoards && (profile?.acceptRemote ?? true)) tasks.push(fetchAllUnifiedJobs());
+  const results = await Promise.all(tasks.map(withDeadline));
   return results.flat();
 }

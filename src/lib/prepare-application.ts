@@ -14,7 +14,7 @@ export function computeMatchScore(
   profile: JobProfile,
   jobDescription: string,
 ): { score: number; matched: string[]; missing: string[] } {
-  const skillTokens = (profile.skills + " " + profile.keywords)
+  const skillTokens = profile.skills
     .split(/[,;\n]+/)
     .map((s) => s.trim())
     .filter(Boolean);
@@ -83,6 +83,6 @@ export function buildLinkedInNoteShort(
   title: string,
 ): string {
   const name = profile.fullName.trim() || "[Seu nome]";
-  const kw = profile.keywords.split(/\s+/).slice(0, 3).join(", ");
+  const kw = profile.skills.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean).slice(0, 3).join(", ");
   return `Olá! Me candidatei à vaga de ${title}. Background em ${kw || "software"} — adoraria trocar uma ideia sobre a oportunidade. Abraço, ${name}`;
 }

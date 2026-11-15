@@ -1,3 +1,4 @@
+import { primaryKeyword } from "@/lib/jobs/profile-search-terms";
 import type { JobProfile } from "@/types/job-hunt";
 
 export type SearchLink = {
@@ -9,7 +10,7 @@ export type SearchLink = {
 
 function baseParams(profile: JobProfile): URLSearchParams {
   const p = new URLSearchParams();
-  const kw = profile.keywords.trim() || profile.headline;
+  const kw = primaryKeyword(profile);
   p.set("keywords", kw);
   if (profile.location.trim()) {
     p.set("location", profile.location.trim());
@@ -81,13 +82,13 @@ export function buildLinkedInSearchLinks(profile: JobProfile): SearchLink[] {
 
 export function buildGoogleJobsLink(profile: JobProfile): string {
   const q = encodeURIComponent(
-    `${profile.keywords || profile.headline} ${profile.location}`.trim(),
+    `${primaryKeyword(profile)} ${profile.location}`.trim(),
   );
   return `https://www.google.com/search?q=${q}&ibp=htl;jobs`;
 }
 
 export function buildIndeedBrLink(profile: JobProfile): string {
-  const q = encodeURIComponent(profile.keywords || profile.headline);
+  const q = encodeURIComponent(primaryKeyword(profile));
   const l = encodeURIComponent(profile.location || "Brasil");
   return `https://br.indeed.com/jobs?q=${q}&l=${l}`;
 }

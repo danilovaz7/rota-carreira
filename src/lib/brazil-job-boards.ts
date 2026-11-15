@@ -1,3 +1,4 @@
+import { primaryKeyword } from "@/lib/jobs/profile-search-terms";
 import type { JobProfile } from "@/types/job-hunt";
 
 export type JobBoardLink = {
@@ -14,9 +15,7 @@ function q(text: string): string {
 
 /** Portais onde devs BR costumam achar vaga (não só LinkedIn). */
 export function buildBrazilJobBoardLinks(profile: JobProfile): JobBoardLink[] {
-  const term =
-    profile.keywords.trim() ||
-    "desenvolvedor full stack react node júnior";
+  const term = primaryKeyword(profile) || "desenvolvedor full stack júnior";
   const city = profile.location.includes("Santos")
     ? "Santos"
     : profile.location.split(",")[0]?.trim() || "São Paulo";
