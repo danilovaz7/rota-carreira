@@ -314,12 +314,12 @@ export async function fetchAllCompanySiteJobs(
   searchTerms?: string[],
   includeInternships = false,
   profile?: JobProfile,
+  sources: { gupy: boolean; companies: boolean } = { gupy: true, companies: true },
 ): Promise<UnifiedJob[]> {
-  const results = await Promise.allSettled([
-    fetchGupyJobs(searchTerms, includeInternships, profile),
-    fetchCompanyBoardJobs(),
-    fetchMercadoLivreJobs(),
-  ]);
+  const tasks: Promise<UnifiedJob[]>[] = [];
+  if (sources.gupy) tasks.push(fetchGupyJobs(searchTerms, includeInternships, profile));
+  if (sources.companies) tasks.push(fetchCompanyBoardJobs(), fetchMercadoLivreJobs());
+  const results = await Promise.allSettled(tasks);
   return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }
 

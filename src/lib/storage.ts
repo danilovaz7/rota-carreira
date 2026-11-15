@@ -1,5 +1,6 @@
 import type { Application, JobProfile } from "@/types/job-hunt";
 import { DEFAULT_PROFILE } from "@/types/job-hunt";
+import { normalizeProfile } from "@/lib/profile";
 
 const PROFILE_KEY = "job-hunt-profile-v2";
 const LEGACY_PROFILE_KEY = "job-hunt-profile-v1";
@@ -32,7 +33,7 @@ export function loadProfile(): JobProfile {
     }
     if (!raw) return DEFAULT_PROFILE;
     const parsed = JSON.parse(raw) as Partial<JobProfile>;
-    const merged = { ...DEFAULT_PROFILE, ...parsed };
+    const merged = normalizeProfile(parsed);
     const empty =
       !parsed.fullName?.trim() &&
       !parsed.headline?.trim() &&

@@ -1,315 +1,133 @@
 import type { JobProfile } from "@/types/job-hunt";
 import type { ScoredJob, UnifiedJob } from "@/lib/jobs/types";
+import {
+  WEAK_SKILLS,
+  coreWords,
+  hasTerm,
+  normalizeText,
+  splitList,
+} from "@/lib/jobs/profile-search-terms";
 
 const INTERNSHIP_RE =
-  /\b(est[aá]gio|estagi[aá]rio|internship|\bintern\b|apprentice|pasant[ií]a|trainee\s+program\s+intern)\b/i;
+  /\b(estagio|estagiario|estagiaria|internship|intern|apprentice|aprendiz|pasantia)\b/;
 
 export function isInternshipJob(job: UnifiedJob): boolean {
-  return INTERNSHIP_RE.test(
-    `${job.title} ${job.tags.join(" ")} ${job.description ?? ""}`.toLowerCase(),
-  );
+  return INTERNSHIP_RE.test(normalizeText(`${job.title} ${job.tags.join(" ")}`));
 }
 
 const SENIOR_RE =
-  /\b(senior|s[eê]nior|staff|principal|director|diretor|head of|lead\b|leader|lider|tech lead|chapter lead|\bsr\.?\b|pleno\s+s[eê]nior|coordenador|coordenadora|coordenacao|coordinator|master|gerente|manager|arquiteto|arquiteta|architect|5\+?\s*years|7\+?\s*years|10\+?\s*years|15\+?\s*years)\b/i;
+  /\b(senior|staff|principal|director|diretor|diretora|head of|lead|leader|lider|tech lead|chapter lead|sr\.?|coordenador|coordenadora|coordenacao|coordinator|gerente|manager|arquiteto|arquiteta|architect|5\+? ?years|7\+? ?years|10\+? ?years)\b/;
 
-/** Nível intermediário: só aceito quando o título também diz júnior (ex.: "Júnior/Pleno"). */
-const MID_LEVEL_RE =
-  /\b(pleno|\bpl\b\.?|especialista|specialist|mid[- ]?level|\bmid\b|intermediate|iii|iv)\b/i;
+/** Nível intermediário: só entra se o perfil aceitar pleno ou se o título também disser júnior. */
+const MID_LEVEL_RE = /\b(pleno|pl(?! sql)|mid level|mid|intermediate|especialista|specialist|iii|iv)\b/;
 
 const JUNIOR_RE =
-  /\b(j[uú]nior|\bjr\.?\b|trainee|entry[- ]level|graduat|in[ií]cio\s+de\s+carreira|primeiro\s+emprego|0\s*[-–]\s*2\s*anos|1\s*[-–]\s*3\s*anos|2\s*[-–]\s*4\s*anos|at[eé]\s*2\s*anos|at[eé]\s*3\s*anos)\b/i;
+  /\b(junior|jr\.?|trainee|entry level|graduate|inicio de carreira|primeiro emprego|0 ?a? ?2 anos|ate 2 anos|ate 3 anos)\b/;
 
 const DEV_TITLE_RE =
-  /\b(desenvolvedor|desenvolvedora|developer|software|full[\s-]?stack|front[\s-]?end|back[\s-]?end|web|react|node|typescript|javascript|java|python|php|\.net|c#|programador[a]?\s+(de\s+)?(sistemas|web|software|full|front|back|java|python|php|react|node|\.net)|analista\s+de\s+(sistemas|desenvolvimento)|engenheir[oa]\s+de\s+software|engenharia\s+de\s+software|power\s+platform|power\s+apps|rpa|devops|mobile|android|ios|qa)\b/i;
+  /\b(desenvolvedor|desenvolvedora|developer|dev|software|full stack|front end|back end|programador|programadora|engenheiro de software|engenheira de software|analista de sistemas|analista desenvolvedor|power platform|power apps|rpa|mobile)\b/;
 
 const NON_DEV_RE =
-  /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|recruiter|customer support|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader|personalberater)\b/i;
+  /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|business development|recruiter|recrutador|customer support|customer success|support analyst|support engineer|analista de suporte|suporte tecnico|help ?desk|service desk|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader)\b/;
 
-/** Sinônimos leves — “figurinha um pouco”, sem exagerar. */
-const STRETCH: Record<string, string[]> = {
-  react: ["next", "nextjs", "frontend", "front-end", "vue", "angular", "spa"],
-  node: ["nodejs", "express", "nestjs", "backend", "back-end", "api"],
-  typescript: ["javascript", "typescript", " ts ", " js "],
-  javascript: ["typescript", "ecmascript", "node", "react"],
-  mysql: ["sql", "postgres", "postgresql", "mongodb", "banco de dados"],
-  "power platform": ["power apps", "power automate", "power bi", "microsoft"],
-  quimica: ["quimico", "quimicos", "quimica", "petroquimico", "petroquimica"],
-  "engenharia quimica": ["engenheiro quimico", "engenheira quimica", "processos quimicos"],
-  processos: ["processo", "industrial", "operacional", "producao"],
+/** Sinônimos leves de skills (chaves e valores já normalizados). */
+const SKILL_SYNONYMS: Record<string, string[]> = {
+  react: ["next", "react native"],
+  next: ["react"],
+  node: ["express", "nestjs"],
+  express: ["node"],
+  typescript: ["javascript"],
+  javascript: ["typescript"],
+  "power platform": ["power apps", "power automate", "power bi"],
+  "power apps": ["power platform"],
+  "power automate": ["power platform"],
+  "power bi": ["power platform"],
+  sql: ["mysql", "postgresql", "postgres", "sql server"],
+  mysql: ["sql"],
+  postgresql: ["postgres", "sql"],
 };
 
-function normalize(text: string): string {
-  return text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
-}
+/** Sinônimos das palavras de cargo usadas nas buscas. */
+const ROLE_WORD_SYNONYMS: Record<string, string[]> = {
+  desenvolvedor: ["desenvolvedora", "developer", "dev", "programador", "programadora", "engineer", "engenheiro", "engenheira"],
+  desenvolvedora: ["desenvolvedor", "developer", "dev", "programadora", "programador"],
+  developer: ["desenvolvedor", "desenvolvedora", "dev", "engineer"],
+  analista: ["analyst"],
+  dados: ["data"],
+  data: ["dados"],
+  engenheiro: ["engineer", "engenheira"],
+  sistemas: ["systems", "software"],
+};
 
-function parseSkillTokens(profile: JobProfile): string[] {
-  const raw = `${profile.headline},${profile.skills},${profile.keywords},${profile.resumeSummary}`;
-  const fromList = raw.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
-  const fromWords = normalize(raw)
-    .split(/\s+/)
-    .filter((w) => w.length >= 4);
-  return [...new Set([...fromList, ...fromWords])];
-}
+type ProfileTerms = {
+  /** Cada busca/título vira uma lista de palavras que precisam estar no título da vaga. */
+  roles: string[][];
+  /** Skills normalizadas (com rótulo original para exibir). */
+  skills: { label: string; terms: string[]; weak: boolean }[];
+  exclude: string[];
+  extraCities: string[];
+};
 
-/** Estágio: precisa ter relação com a área, mas aceita 1 palavra forte no título. */
-function internshipMatchesProfile(blob: string, title: string, tokens: string[]): boolean {
-  if (jobMatchesProfileFocus(blob, title, tokens)) return true;
+const termsCache = new WeakMap<JobProfile, ProfileTerms>();
 
-  const titleNorm = normalize(title);
-  for (const skill of tokens) {
-    const trimmed = skill.trim();
-    if (trimmed.length < 4) continue;
-    for (const v of expandSkill(trimmed)) {
-      if (v.length < 4) continue;
-      if (titleNorm.includes(v)) return true;
-    }
+function profileTerms(profile: JobProfile): ProfileTerms {
+  const hit = termsCache.get(profile);
+  if (hit) return hit;
+
+  const roles: string[][] = [];
+  const seenRoles = new Set<string>();
+  for (const phrase of [...splitList(profile.keywords), profile.headline]) {
+    const words = coreWords(phrase);
+    if (!words.length || words.length > 6) continue;
+    const key = words.join(" ");
+    if (seenRoles.has(key)) continue;
+    seenRoles.add(key);
+    roles.push(words);
   }
 
-  let blobHits = 0;
-  for (const skill of tokens) {
-    if (skill.trim().length < 4) continue;
-    for (const v of expandSkill(skill)) {
-      if (v.length >= 5 && blob.includes(v)) blobHits += 1;
-    }
-  }
-  return blobHits >= 2;
-}
+  // Sinônimo só vale se não for uma skill que você já listou (evita contar SQL três vezes).
+  const skillLabels = splitList(profile.skills);
+  const listed = new Set(skillLabels.map(normalizeText));
+  const skills = skillLabels.map((label) => {
+    const base = normalizeText(label);
+    const synonyms = (SKILL_SYNONYMS[base] ?? []).filter((syn) => !listed.has(syn));
+    return {
+      label,
+      terms: [base, ...synonyms],
+      weak: WEAK_SKILLS.has(base),
+    };
+  });
 
-function jobMatchesProfileFocus(blob: string, title: string, tokens: string[]): boolean {
-  if (!tokens.length) return DEV_TITLE_RE.test(normalize(title));
-
-  const titleNorm = normalize(title);
-  let titleHits = 0;
-  let blobHits = 0;
-
-  for (const skill of tokens) {
-    const variants = expandSkill(skill);
-    for (const v of variants) {
-      if (v.length < 3) continue;
-      if (titleNorm.includes(v)) titleHits += 1;
-      if (blob.includes(v)) blobHits += 1;
-    }
-  }
-
-  if (titleHits >= 1) return true;
-  if (blobHits >= 2) return true;
-  if (JUNIOR_RE.test(titleNorm) && blobHits >= 1) return true;
-  return false;
-}
-
-function expandSkill(skill: string): string[] {
-  const key = normalize(skill);
-  const extra: string[] = [];
-  for (const [base, syns] of Object.entries(STRETCH)) {
-    if (key.includes(normalize(base))) extra.push(...syns);
-  }
-  return [key, ...extra.map(normalize)];
-}
-
-export function isExcludedJob(job: UnifiedJob, includeInternships = false): boolean {
-  const title = normalize(job.title);
-  if (
-    !includeInternships &&
-    INTERNSHIP_RE.test(normalize(`${job.title} ${job.tags.join(" ")}`))
-  ) {
-    return true;
-  }
-  if (SENIOR_RE.test(title)) return true;
-  return MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title);
-}
-
-function scoreInternshipJob(
-  job: UnifiedJob,
-  profile: JobProfile,
-  now: number,
-): ScoredJob | null {
-  const blob = normalize(
-    `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,
-  );
-  const title = normalize(job.title);
-  if (SENIOR_RE.test(title)) return null;
-
-  const skills = parseSkillTokens(profile);
-  if (!internshipMatchesProfile(blob, job.title, skills)) return null;
-
-  const reasons: string[] = ["Estágio na sua área"];
-  let score = 38;
-
-  const workplace = resolveWorkplace(job, blob);
-  const location = normalize(job.location);
-
-  if (workplace === "remote") {
-    if (job.source !== "LinkedIn" && !REMOTE_OPEN_TO_BRAZIL_RE.test(location)) {
-      return null;
-    }
-    reasons.push("Remoto");
-  } else {
-    if (!SP_REGION_RE.test(location)) return null;
-    score += 8;
-    reasons.push(
-      SANTOS_REGION_RE.test(location) ? "Presencial/híbrido · Baixada Santista" : "Presencial/híbrido · Grande SP",
-    );
-  }
-
-  if (COMPANY_SITE_SOURCES.has(job.source)) {
-    score += 8;
-    reasons.push(`Site da ${job.company}`);
-  }
-
-  const matchedLabels: string[] = [];
-  for (const skill of skills) {
-    const variants = expandSkill(skill);
-    if (variants.some((v) => v.length >= 3 && blob.includes(v))) {
-      if (matchedLabels.length < 3) matchedLabels.push(skill);
-    }
-  }
-  if (matchedLabels.length) {
-    score += 12 + matchedLabels.length * 4;
-    reasons.push(`Área do perfil: ${matchedLabels.join(", ")}`);
-  }
-
-  const ageDays = daysSince(job.publishedAt, now);
-  if (ageDays !== null && ageDays > MAX_AGE_DAYS + 14) return null;
-  const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
-  if (ageDays !== null) {
-    if (ageDays <= 1) score += 12;
-    else if (ageDays <= 3) score += 8;
-    else if (ageDays <= 7) score += 4;
-  }
-  if (isNew) reasons.unshift("Vaga nova");
-
-  if (score < 20) return null;
-
-  return {
-    ...job,
-    score: Math.min(100, score),
-    reasons,
-    workplace,
-    ageDays,
-    isNew,
+  const result: ProfileTerms = {
+    roles,
+    skills,
+    exclude: splitList(profile.excludeKeywords).map(normalizeText).filter((t) => t.length >= 2),
+    extraCities: splitList(profile.extraCities).map(normalizeText).filter((t) => t.length >= 3),
   };
+  termsCache.set(profile, result);
+  return result;
 }
 
-export function scoreJobForProfile(
-  job: UnifiedJob,
-  profile: JobProfile,
-  now: number,
-): ScoredJob | null {
-  if (isExcludedJob(job, profile.includeInternships)) return null;
-
-  if (profile.includeInternships && isInternshipJob(job)) {
-    return scoreInternshipJob(job, profile, now);
-  }
-
-  const blob = normalize(
-    `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")} ${job.location}`,
-  );
-
-  const title = normalize(job.title);
-  if (NON_DEV_RE.test(`${title} ${normalize(job.company)}`)) return null;
-
-  const skills = parseSkillTokens(profile);
-  if (!jobMatchesProfileFocus(blob, job.title, skills)) return null;
-
-  const reasons: string[] = [];
-  let score = 0;
-
-  if (JUNIOR_RE.test(normalize(job.title))) {
-    score += 35;
-    reasons.push("Cargo júnior/trainee no título");
-  } else if (JUNIOR_RE.test(blob)) {
-    score += 22;
-    reasons.push("Perfil júnior na descrição");
-  } else if (!SENIOR_RE.test(blob)) {
-    score += 12;
-    reasons.push("Sem exigência sênior explícita");
-  } else {
-    return null;
-  }
-
-  let matched = 0;
-  const matchedLabels: string[] = [];
-
-  for (const skill of skills) {
-    const variants = expandSkill(skill);
-    if (variants.some((v) => blob.includes(v))) {
-      matched += 1;
-      if (matchedLabels.length < 4) matchedLabels.push(skill);
-    }
-  }
-
-  const skillRatio = skills.length ? matched / skills.length : 0;
-  score += Math.round(skillRatio * 40);
-  if (matchedLabels.length) {
-    reasons.push(`Skills: ${matchedLabels.join(", ")}`);
-  }
-
-  const workplace = resolveWorkplace(job, blob);
-  const location = normalize(job.location);
-
-  if (workplace === "remote") {
-    if (job.source !== "LinkedIn" && !REMOTE_OPEN_TO_BRAZIL_RE.test(location)) {
-      return null;
-    }
-    reasons.push("Remoto");
-  } else {
-    if (!SP_REGION_RE.test(location)) return null;
-    score += 8;
-    reasons.push(
-      SANTOS_REGION_RE.test(location) ? "Presencial/híbrido · Baixada Santista" : "Presencial/híbrido · Grande SP",
-    );
-  }
-
-  if (COMPANY_SITE_SOURCES.has(job.source)) {
-    score += 10;
-    reasons.push(`Site da ${job.company}`);
-  }
-
-  const ageDays = daysSince(job.publishedAt, now);
-  if (ageDays !== null && ageDays > MAX_AGE_DAYS) return null;
-  const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
-  if (ageDays !== null) {
-    if (ageDays <= 1) score += 15;
-    else if (ageDays <= 3) score += 10;
-    else if (ageDays <= 7) score += 5;
-  }
-  if (isNew) reasons.unshift("Vaga nova");
-
-  if (score < 28) return null;
-
-  return {
-    ...job,
-    score: Math.min(100, score),
-    reasons,
-    workplace,
-    ageDays,
-    isNew,
-  };
+function roleMatches(title: string, words: string[]): boolean {
+  return words.every((w) => [w, ...(ROLE_WORD_SYNONYMS[w] ?? [])].some((v) => hasTerm(title, v)));
 }
 
-const MAX_AGE_DAYS = 21;
-
-/** Grande São Paulo + Baixada Santista (sem acentos, pós-normalize). */
-const SANTOS_REGION_RE =
+/** Grande São Paulo e Baixada Santista (texto normalizado). */
+const BAIXADA_RE =
   /\b(santos|sao vicente|guaruja|praia grande|cubatao|bertioga|mongagua|itanhaem|peruibe|baixada santista)\b/;
-const COMPANY_SITE_SOURCES = new Set<UnifiedJob["source"]>(["Gupy", "Site da empresa"]);
 
 /** "São Paulo" só conta como cidade no início de cada local (evita "Agudos, São Paulo" = estado). */
-const SP_REGION_RE = new RegExp(
-  [
-    SANTOS_REGION_RE.source,
-    /(^|; )sao paulo\b/.source,
-    /\b(greater sao paulo|grande sao paulo|guarulhos|osasco|barueri|alphaville|santana de parnaiba|santo andre|sao bernardo|sao caetano|diadema|maua|ribeirao pires|cotia|taboao da serra|embu|itapecerica|carapicuiba|jandira|itapevi|mogi das cruzes|suzano|aruja|itaquaquecetuba|poa|ferraz de vasconcelos|caieiras|franco da rocha|cajamar)\b/.source,
-  ].join("|"),
-);
+const GREATER_SP_RE =
+  /(^|; )sao paulo\b|\b(greater sao paulo|grande sao paulo|guarulhos|osasco|barueri|alphaville|santana de parnaiba|santo andre|sao bernardo|sao caetano|diadema|maua|ribeirao pires|cotia|taboao da serra|embu|itapecerica|carapicuiba|jandira|itapevi|mogi das cruzes|suzano|aruja|itaquaquecetuba|poa|ferraz de vasconcelos|caieiras|franco da rocha|cajamar)\b/;
 
 const REMOTE_OPEN_TO_BRAZIL_RE =
   /\b(brasil|brazil|latam|latin america|south america|americas|worldwide|anywhere|global)\b|^remote$|^$/;
 
+const COMPANY_SITE_SOURCES = new Set<UnifiedJob["source"]>(["Gupy", "Site da empresa"]);
+
 function resolveWorkplace(job: UnifiedJob, blob: string): "remote" | "onsite" {
   if (job.workplace === "remote") return "remote";
-  if (/\b(remoto|remote|home office)\b/.test(normalize(job.title))) return "remote";
+  if (/\b(remoto|remote|home office)\b/.test(normalizeText(job.title))) return "remote";
   if (job.workplace === "onsite") return "onsite";
   return /\b(remoto|remote|home office|100% remoto)\b/.test(blob) ? "remote" : "onsite";
 }
@@ -321,15 +139,135 @@ function daysSince(iso: string, now: number): number | null {
   return Math.max(0, Math.floor((now - t) / 86_400_000));
 }
 
-function dedupeKey(job: ScoredJob): string {
-  return `${normalize(job.company)}|${normalize(job.title)}`;
+/** True se a vaga cai fora pelos filtros de nível ou pelos termos a evitar. */
+export function isExcludedJob(job: UnifiedJob, profile: JobProfile): boolean {
+  const title = normalizeText(job.title);
+  if (SENIOR_RE.test(title)) return true;
+  if (isInternshipJob(job) && !profile.includeInternships) return true;
+  if (MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title) && !profile.includeMidLevel) return true;
+  const { exclude } = profileTerms(profile);
+  return exclude.some((t) => hasTerm(title, t));
 }
 
-function takeUnique(
-  source: ScoredJob[],
-  seen: Set<string>,
-  max: number,
-): ScoredJob[] {
+export function scoreJobForProfile(
+  job: UnifiedJob,
+  profile: JobProfile,
+  now: number,
+): ScoredJob | null {
+  if (isExcludedJob(job, profile)) return null;
+
+  const title = normalizeText(job.title);
+  if (NON_DEV_RE.test(`${title} ${normalizeText(job.company)}`)) return null;
+
+  const blob = normalizeText(
+    `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")}`,
+  );
+  const terms = profileTerms(profile);
+
+  // 1. A vaga é da sua área?
+  const roleHit = terms.roles.some((words) => roleMatches(title, words));
+  const titleSkills = terms.skills.filter((s) => !s.weak && s.terms.some((t) => hasTerm(title, t)));
+  const blobSkills = terms.skills.filter((s) => s.terms.some((t) => hasTerm(blob, t)));
+  const internship = isInternshipJob(job);
+  const devTitle = DEV_TITLE_RE.test(title);
+
+  const inArea =
+    roleHit ||
+    titleSkills.length > 0 ||
+    (devTitle && (JUNIOR_RE.test(title) || internship || blobSkills.length > 0)) ||
+    blobSkills.filter((s) => !s.weak).length >= 3;
+  if (!inArea) return null;
+
+  const reasons: string[] = [];
+  let score = 0;
+
+  // 2. Nível
+  if (internship) {
+    score += 28;
+    reasons.push("Estágio na sua área");
+  } else if (JUNIOR_RE.test(title)) {
+    score += 30;
+    reasons.push("Júnior/trainee no título");
+  } else if (MID_LEVEL_RE.test(title)) {
+    score += 8;
+    reasons.push("Pleno");
+  } else if (JUNIOR_RE.test(blob)) {
+    score += 20;
+    reasons.push("Perfil júnior na descrição");
+  } else if (!SENIOR_RE.test(blob)) {
+    score += 12;
+    reasons.push("Sem exigência sênior");
+  } else {
+    return null;
+  }
+
+  // 3. Cargo e skills
+  if (roleHit) {
+    score += 18;
+    reasons.push("Cargo que você busca");
+  }
+  if (blobSkills.length) {
+    score += Math.min(28, blobSkills.length * 7);
+    reasons.push(`Skills: ${blobSkills.slice(0, 4).map((s) => s.label).join(", ")}`);
+  }
+
+  // 4. Onde
+  const workplace = resolveWorkplace(job, blob);
+  const location = normalizeText(job.location);
+  if (workplace === "remote") {
+    if (!profile.acceptRemote) return null;
+    if (job.source !== "LinkedIn" && !REMOTE_OPEN_TO_BRAZIL_RE.test(location)) return null;
+    reasons.push("Remoto");
+  } else {
+    if (!profile.acceptOnsite) return null;
+    const inBaixada = profile.regionBaixada && BAIXADA_RE.test(location);
+    const inGreaterSP = profile.regionGreaterSP && GREATER_SP_RE.test(location);
+    const extraCity = terms.extraCities.find((c) => hasTerm(location, c));
+    if (!inBaixada && !inGreaterSP && !extraCity) return null;
+    score += 6;
+    reasons.push(
+      inBaixada
+        ? "Presencial/híbrido · Baixada Santista"
+        : inGreaterSP
+          ? "Presencial/híbrido · Grande SP"
+          : `Presencial/híbrido · ${job.location.split(",")[0]}`,
+    );
+  }
+
+  if (COMPANY_SITE_SOURCES.has(job.source)) {
+    score += 6;
+    reasons.push(`Site da ${job.company}`);
+  }
+
+  // 5. Quão recente
+  const ageDays = daysSince(job.publishedAt, now);
+  if (ageDays !== null && ageDays > profile.maxAgeDays) return null;
+  const isNew = Boolean(job.isNew) || (ageDays !== null && ageDays <= 2);
+  if (ageDays !== null) {
+    if (ageDays <= 1) score += 14;
+    else if (ageDays <= 3) score += 9;
+    else if (ageDays <= 7) score += 4;
+  }
+  if (isNew) reasons.unshift("Vaga nova");
+
+  score = Math.min(100, score);
+  if (score < profile.minScore) return null;
+
+  return {
+    ...job,
+    score,
+    reasons,
+    workplace,
+    ageDays,
+    isNew,
+  };
+}
+
+function dedupeKey(job: ScoredJob): string {
+  return `${normalizeText(job.company)}|${normalizeText(job.title)}`;
+}
+
+function takeUnique(source: ScoredJob[], seen: Set<string>, max: number): ScoredJob[] {
   const picked: ScoredJob[] = [];
   for (const j of source) {
     const key = dedupeKey(j);
@@ -355,17 +293,16 @@ export function rankJobsForProfile(
   scored.sort((a, b) => b.score - a.score);
 
   if (!profile.includeInternships) {
-    const seen = new Set<string>();
-    return takeUnique(scored, seen, limit);
+    return takeUnique(scored, new Set<string>(), limit);
   }
 
+  // Com estágio ligado, garante espaço para as duas listas.
   const interns = scored.filter((j) => isInternshipJob(j));
   const others = scored.filter((j) => !isInternshipJob(j));
-  const internSlots = Math.round(limit * 0.55);
+  const internSlots = Math.round(limit * 0.5);
   const seen = new Set<string>();
   const out = [...takeUnique(interns, seen, internSlots)];
   out.push(...takeUnique(others, seen, limit - out.length));
   if (out.length < limit) out.push(...takeUnique(interns, seen, limit - out.length));
-  if (out.length < limit) out.push(...takeUnique(others, seen, limit - out.length));
   return out.slice(0, limit);
 }

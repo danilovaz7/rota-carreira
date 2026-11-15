@@ -26,16 +26,19 @@ export async function GET(request: Request) {
     return NextResponse.json({
       profileName: profile.fullName,
       filters: {
-        exclude: profile.includeInternships
-          ? "sênior / liderança (estágios incluídos)"
-          : "estágio / internship; sênior / liderança",
+        exclude: [
+          "sênior / liderança",
+          profile.includeInternships ? null : "estágio",
+          profile.includeMidLevel ? null : "pleno",
+          profile.excludeKeywords.trim() ? `termos: ${profile.excludeKeywords}` : null,
+        ]
+          .filter(Boolean)
+          .join("; "),
         focus: `perfil: ${profile.headline || "skills e palavras-chave"}`,
-        searchTerms: searchTerms.slice(0, 6),
+        searchTerms,
         internshipTerms: internshipTerms.slice(0, 6),
-        mix: profile.includeInternships
-          ? "~55% estágio (só na área do perfil) na lista Para você"
-          : undefined,
-        stretch: "sinônimos leves nas skills (ex.: React↔Next)",
+        maxAgeDays: profile.maxAgeDays,
+        minScore: profile.minScore,
       },
       scanned: all.length,
       count: jobs.length,

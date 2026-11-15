@@ -41,7 +41,7 @@ type SortMode = "fit" | "newest";
 const WORKPLACE_FILTERS: { value: WorkplaceFilter; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "remote", label: "Remoto" },
-  { value: "onsite", label: "Presencial · SP/Santos" },
+  { value: "onsite", label: "Presencial/híbrido" },
 ];
 
 type OriginFilter = "all" | "linkedin" | "gupy" | "company" | "remote-boards";
@@ -63,6 +63,28 @@ function originOf(job: ScoredJob): Exclude<OriginFilter, "all"> {
 function sourceLabel(job: ScoredJob): string {
   if (job.source === "Gupy") return "Site da empresa · Gupy";
   return job.source;
+}
+
+function describeSearch(profile: JobProfile): string {
+  const levels = [
+    profile.includeInternships ? "estágio" : null,
+    "trainee/júnior",
+    profile.includeMidLevel ? "pleno" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const where: string[] = [];
+  if (profile.acceptRemote) where.push("remoto");
+  if (profile.acceptOnsite) {
+    const regions = [
+      profile.regionBaixada ? "Baixada Santista" : null,
+      profile.regionGreaterSP ? "Grande SP" : null,
+      ...profile.extraCities.split(/[,;\n]+/).map((c) => c.trim()).filter(Boolean),
+    ].filter(Boolean);
+    if (regions.length) where.push(`presencial/híbrido em ${regions.join(", ")}`);
+  }
+  const whereText = where.length ? where.join(" ou ") : "nenhum local marcado (ajuste no Perfil)";
+  return `Vagas ${levels} de ${profile.headline.trim() || "acordo com seu perfil"}, publicadas nos últimos ${profile.maxAgeDays} dias, ${whereText}. Encaixe mínimo de ${profile.minScore}%. Tudo isso se ajusta na aba Perfil.`;
 }
 
 function formatAge(ageDays: number | null): string {
@@ -225,13 +247,7 @@ export function ForYouJobs({
     try {
       const params = new URLSearchParams({
         limit: profile.includeInternships ? "100" : "80",
-        fullName: profile.fullName,
-        headline: profile.headline,
-        skills: profile.skills,
-        keywords: profile.keywords,
-        location: profile.location,
-        resumeSummary: profile.resumeSummary,
-        includeInternships: String(profile.includeInternships),
+        profile: JSON.stringify(profile),
       });
       const res = await fetch(`/api/jobs/for-you?${params}`);
       const json = (await res.json()) as ApiResponse & { error?: string };
@@ -316,17 +332,12 @@ export function ForYouJobs({
         <div className="space-y-1">
           <h2 className="text-xl font-semibold tracking-tight">Vagas para você</h2>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Vagas de entrada (trainee/júnior) alinhadas ao{" "}
-            <span className="font-medium text-foreground">
-              {profile.headline.trim() || "seu perfil de busca"}
-            </span>
-            . LinkedIn, Gupy e sites de empresas. Remoto em todo o Brasil;
-            presencial só em SP, Santos e região.
+            {describeSearch(profile)}
             {data?.filters?.searchTerms?.length ? (
               <>
                 {" "}
                 <span className="text-xs">
-                  Buscando: {data.filters.searchTerms.slice(0, 4).join(" · ")}
+                  Buscando: {data.filters.searchTerms.join(" · ")}
                 </span>
               </>
             ) : null}

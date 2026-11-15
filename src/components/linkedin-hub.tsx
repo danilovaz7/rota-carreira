@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { JobProfile } from "@/types/job-hunt";
+import { primaryKeyword } from "@/lib/jobs/profile-search-terms";
 import {
   buildGoogleJobsLink,
   buildIndeedBrLink,
@@ -53,7 +54,7 @@ export function LinkedInHub({ profile, compact }: Props) {
             <CardDescription>
               Palavras-chave:{" "}
               <span className="font-medium text-foreground">
-                {profile.keywords || profile.headline}
+                {primaryKeyword(profile)}
               </span>{" "}
               · Local:{" "}
               <span className="font-medium text-foreground">

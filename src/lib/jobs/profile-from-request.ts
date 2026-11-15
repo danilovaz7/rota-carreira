@@ -1,22 +1,37 @@
 import type { JobProfile } from "@/types/job-hunt";
-import { DEFAULT_PROFILE } from "@/types/job-hunt";
+import { normalizeProfile } from "@/lib/profile";
 
-/** Monta o perfil a partir da query string do `/api/jobs/for-you`. */
+/**
+ * Monta o perfil a partir da query string do `/api/jobs/for-you`.
+ * Formato atual: `?profile=<json>`. Os parâmetros soltos antigos continuam aceitos.
+ */
 export function profileFromSearchParams(searchParams: URLSearchParams): JobProfile {
-  const pick = (key: keyof JobProfile, fallback: string) =>
-    searchParams.get(key)?.trim() || fallback;
+  const raw = searchParams.get("profile");
+  if (raw) {
+    try {
+      return normalizeProfile(JSON.parse(raw));
+    } catch {
+      // cai no formato antigo abaixo
+    }
+  }
 
-  return {
-    ...DEFAULT_PROFILE,
-    fullName: pick("fullName", DEFAULT_PROFILE.fullName),
-    headline: pick("headline", DEFAULT_PROFILE.headline),
-    skills: pick("skills", DEFAULT_PROFILE.skills),
-    keywords: pick("keywords", DEFAULT_PROFILE.keywords),
-    location: pick("location", DEFAULT_PROFILE.location),
-    resumeSummary: pick("resumeSummary", DEFAULT_PROFILE.resumeSummary),
-    yearsExperience: pick("yearsExperience", DEFAULT_PROFILE.yearsExperience),
-    linkedInUrl: pick("linkedInUrl", DEFAULT_PROFILE.linkedInUrl),
-    dailyApplyGoal: Number(searchParams.get("dailyApplyGoal")) || DEFAULT_PROFILE.dailyApplyGoal,
-    includeInternships: searchParams.get("includeInternships") === "true",
-  };
+  const legacy: Record<string, unknown> = {};
+  for (const key of [
+    "fullName",
+    "headline",
+    "skills",
+    "keywords",
+    "location",
+    "resumeSummary",
+    "yearsExperience",
+    "linkedInUrl",
+  ]) {
+    const v = searchParams.get(key)?.trim();
+    if (v) legacy[key] = v;
+  }
+  if (searchParams.has("dailyApplyGoal")) legacy.dailyApplyGoal = searchParams.get("dailyApplyGoal");
+  if (searchParams.has("includeInternships")) {
+    legacy.includeInternships = searchParams.get("includeInternships") === "true";
+  }
+  return normalizeProfile(legacy);
 }
