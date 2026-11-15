@@ -141,6 +141,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
       extraCities: DEFAULT_PROFILE.extraCities,
       maxAgeDays: DEFAULT_PROFILE.maxAgeDays,
       minScore: DEFAULT_PROFILE.minScore,
+      preferCompanySites: DEFAULT_PROFILE.preferCompanySites,
       sources: DEFAULT_PROFILE.sources,
     });
   }
@@ -395,6 +396,15 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               hint={s.hint}
             />
           ))}
+          <div className="sm:col-span-2">
+            <CheckRow
+              id="preferCompanySites"
+              checked={profile.preferCompanySites}
+              onChange={(v) => update({ preferCompanySites: v })}
+              label="Priorizar vagas no site da empresa"
+              hint="Vagas da Gupy e de páginas de carreira sobem na lista. Candidatura direta costuma ter menos concorrência que a do LinkedIn."
+            />
+          </div>
           {noSource && (
             <p className="flex gap-2 text-sm text-amber-700 sm:col-span-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />

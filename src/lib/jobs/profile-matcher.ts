@@ -235,7 +235,7 @@ export function scoreJobForProfile(
   }
 
   if (COMPANY_SITE_SOURCES.has(job.source)) {
-    score += 6;
+    score += profile.preferCompanySites ? 14 : 6;
     reasons.push(`Site da ${job.company}`);
   }
 

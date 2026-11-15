@@ -1,5 +1,5 @@
 import { fetchWithTimeout } from "@/lib/jobs/fetch-with-timeout";
-import { buildInternshipSearchTerms } from "@/lib/jobs/profile-search-terms";
+import { buildCompanySiteTerms, buildInternshipSearchTerms } from "@/lib/jobs/profile-search-terms";
 import type { JobProfile } from "@/types/job-hunt";
 import type { UnifiedJob, Workplace } from "@/lib/jobs/types";
 import { stripHtml } from "@/lib/jobs/strip-html";
@@ -250,24 +250,35 @@ export async function fetchGupyJobs(
   includeInternships = false,
   profile?: JobProfile,
 ): Promise<UnifiedJob[]> {
-  const profileTerms = searchTerms?.length ? searchTerms.slice(0, 8) : GUPY_TERMS;
+  // A Gupy busca pelo nome da vaga: termos curtos (sem "júnior") trazem muito mais resultado.
+  const profileTerms = profile
+    ? buildCompanySiteTerms(profile)
+    : searchTerms?.length
+      ? searchTerms.slice(0, 8)
+      : GUPY_TERMS;
   const internTerms =
     includeInternships && profile ? buildInternshipSearchTerms(profile) : [];
   const terms = includeInternships
     ? [...new Set([...internTerms, ...profileTerms])]
     : profileTerms;
-  const offsets = includeInternships ? [0, 100, 200, 300, 400] : [0, 100, 200];
+  const offsets = includeInternships ? [0, 100, 200, 300] : [0, 100, 200];
   const cacheKey = `gupy:${includeInternships ? "i:" : ""}${terms.join("|").slice(0, 240)}`;
   return cached(cacheKey, async () => {
-    const pages = terms.flatMap((term) => offsets.map((offset) => ({ term, offset })));
-    const results = await mapLimit(pages, 5, async ({ term, offset }) => {
-      const params = new URLSearchParams({ jobName: term, limit: "100", offset: String(offset) });
-      const res = await fetchWithTimeout(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
-        headers: { ...UA, Accept: "application/json" },
-      });
-      if (!res.ok) return [];
-      const data = (await res.json()) as { data?: GupyJob[] };
-      return data.data ?? [];
+    // Cada termo pagina só enquanto vier página cheia; termos rodam em paralelo.
+    const results = await mapLimit(terms, 6, async (term) => {
+      const found: GupyJob[] = [];
+      for (const offset of offsets) {
+        const params = new URLSearchParams({ jobName: term, limit: "100", offset: String(offset) });
+        const res = await fetchWithTimeout(`https://portal.gupy.io/api/job-search/jobs?${params}`, {
+          headers: { ...UA, Accept: "application/json" },
+        });
+        if (!res.ok) break;
+        const data = (await res.json()) as { data?: GupyJob[] };
+        const page = data.data ?? [];
+        found.push(...page);
+        if (page.length < 100) break;
+      }
+      return found;
     });
 
     const byId = new Map<number, GupyJob>();
