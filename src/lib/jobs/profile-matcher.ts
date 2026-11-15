@@ -28,7 +28,7 @@ const DEV_TITLE_RE =
   /\b(desenvolvedor|desenvolvedora|developer|dev|software|full stack|front end|back end|programador|programadora|engenheiro de software|engenheira de software|analista de sistemas|analista desenvolvedor|power platform|power apps|rpa|mobile)\b/;
 
 const NON_DEV_RE =
-  /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|business development|recruiter|recrutador|customer support|customer success|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader)\b/;
+  /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|business development|recruiter|recrutador|customer support|customer success|support analyst|support engineer|analista de suporte|suporte tecnico|help ?desk|service desk|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader)\b/;
 
 /** Sinônimos leves de skills (chaves e valores já normalizados). */
 const SKILL_SYNONYMS: Record<string, string[]> = {
