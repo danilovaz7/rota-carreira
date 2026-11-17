@@ -78,13 +78,13 @@ export function GettingStarted({
   return (
     <section
       className={cn(
-        "space-y-4 rounded-2xl border bg-card p-5 shadow-xs",
-        variant === "full" && "border-primary/30 bg-primary/[0.03] p-6",
+        "space-y-4 rounded-2xl border bg-card p-4 shadow-xs sm:p-5",
+        variant === "full" && "border-primary/30 bg-primary/[0.03] sm:p-6",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className={cn("font-semibold", variant === "full" ? "text-xl" : "text-base")}>
+          <h2 className={cn("font-semibold", variant === "full" ? "text-lg sm:text-xl" : "text-base")}>
             {variant === "full" ? "Vamos configurar sua busca" : "Primeiros passos"}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -120,7 +120,7 @@ export function GettingStarted({
             <li
               key={step.title}
               className={cn(
-                "flex flex-wrap items-center gap-3 rounded-xl border p-3 sm:flex-nowrap",
+                "flex flex-wrap items-start gap-3 rounded-xl border p-3 sm:flex-nowrap sm:items-center",
                 step.done ? "bg-emerald-50/60 dark:bg-emerald-950/20" : "bg-background",
               )}
             >
@@ -143,7 +143,7 @@ export function GettingStarted({
                 {!step.done && <p className="text-xs text-muted-foreground">{step.text}</p>}
               </div>
               {!step.done && step.action && (
-                <Button type="button" size="sm" onClick={step.action.onClick}>
+                <Button type="button" size="sm" className="w-full sm:w-auto" onClick={step.action.onClick}>
                   {step.action.label}
                 </Button>
               )}
