@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { JobProfile, JobSourceToggles } from "@/types/job-hunt";
-import { DEFAULT_PROFILE, RECOMMENDED_KEYWORDS } from "@/types/job-hunt";
+import { DEFAULT_PROFILE, SEARCH_PRESETS } from "@/types/job-hunt";
+import type { SearchPreset } from "@/types/job-hunt";
 import { saveProfile } from "@/lib/storage";
 import { analyzeKeywords } from "@/lib/jobs/profile-search-terms";
 
@@ -126,19 +127,22 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
     update({ sources: { ...profile.sources, [key]: value } });
   }
 
+  function applyPreset(preset: SearchPreset) {
+    update({
+      headline: preset.headline,
+      keywords: preset.keywords,
+      skills: preset.skills,
+    });
+  }
+
   function resetSearchSettings() {
     update({
-      headline: DEFAULT_PROFILE.headline,
-      keywords: DEFAULT_PROFILE.keywords,
-      skills: DEFAULT_PROFILE.skills,
-      excludeKeywords: DEFAULT_PROFILE.excludeKeywords,
       includeInternships: DEFAULT_PROFILE.includeInternships,
       includeMidLevel: DEFAULT_PROFILE.includeMidLevel,
       acceptRemote: DEFAULT_PROFILE.acceptRemote,
       acceptOnsite: DEFAULT_PROFILE.acceptOnsite,
       regionBaixada: DEFAULT_PROFILE.regionBaixada,
       regionGreaterSP: DEFAULT_PROFILE.regionGreaterSP,
-      extraCities: DEFAULT_PROFILE.extraCities,
       maxAgeDays: DEFAULT_PROFILE.maxAgeDays,
       minScore: DEFAULT_PROFILE.minScore,
       preferCompanySites: DEFAULT_PROFILE.preferCompanySites,
@@ -170,7 +174,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               id="fullName"
               value={profile.fullName}
               onChange={(e) => update({ fullName: e.target.value })}
-              placeholder="Danilo Silva"
+              placeholder="Seu nome"
             />
           </div>
           <div className="space-y-2">
@@ -188,7 +192,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               id="location"
               value={profile.location}
               onChange={(e) => update({ location: e.target.value })}
-              placeholder="Santos, SP"
+              placeholder="Ex.: Campinas, SP"
             />
           </div>
           <div className="space-y-2">
@@ -226,17 +230,24 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
           description="Cada palavra-chave vira uma busca separada no LinkedIn e na Gupy. Separe por vírgula ou uma por linha."
         >
           <div className="space-y-2 sm:col-span-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label htmlFor="keywords">Palavras-chave (uma busca por item)</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => update({ keywords: RECOMMENDED_KEYWORDS })}
-              >
-                Usar as recomendadas
-              </Button>
+            <Label>Começar com um modelo (você pode editar tudo depois)</Label>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {SEARCH_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="rounded-xl border bg-card p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                >
+                  <span className="block text-sm font-medium">{preset.label}</span>
+                  <span className="block text-xs text-muted-foreground">{preset.description}</span>
+                </button>
+              ))}
             </div>
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="keywords">Palavras-chave (uma busca por item)</Label>
             <Textarea
               id="keywords"
               rows={3}
@@ -358,6 +369,15 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               </div>
             </>
           )}
+          {profile.acceptOnsite &&
+            !profile.regionBaixada &&
+            !profile.regionGreaterSP &&
+            !profile.extraCities.trim() && (
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Para ver vagas presenciais ou híbridas, marque uma região acima ou escreva a sua
+                cidade em “Outras cidades”.
+              </p>
+            )}
           {noPlace && (
             <p className="flex gap-2 text-sm text-amber-700 sm:col-span-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -429,10 +449,10 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
 
         <div className="flex flex-wrap gap-2 border-t pt-6 sm:col-span-2">
           <Button type="button" variant="outline" onClick={resetSearchSettings}>
-            Restaurar busca recomendada
+            Restaurar filtros padrão
           </Button>
           <p className="self-center text-xs text-muted-foreground">
-            Volta palavras-chave, skills e filtros para o padrão. Nome, LinkedIn e resumo ficam.
+            Volta nível, locais, idade das vagas, encaixe e fontes para o padrão. Seus textos ficam.
           </p>
         </div>
       </CardContent>

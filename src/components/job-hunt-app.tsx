@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BriefcaseBusiness,
   CalendarCheck,
+  CircleHelp,
   ListChecks,
   NotebookPen,
   Search,
@@ -24,6 +25,9 @@ import { PrepareApply } from "@/components/prepare-apply";
 import { ForYouJobs } from "@/components/for-you-jobs";
 import { SyncStatusPill } from "@/components/sync-status-pill";
 import { useAutoSync } from "@/hooks/use-auto-sync";
+import { OnboardingTour, hasSeenOnboarding } from "@/components/onboarding-tour";
+import { GettingStarted } from "@/components/getting-started";
+import { isProfileConfigured } from "@/lib/profile";
 
 const TABS: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "para-voce", label: "Para você", icon: Sparkles },
@@ -39,10 +43,26 @@ export function JobHuntApp() {
   const [profile, setProfile] = useState<JobProfile | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [tab, setTab] = useState("para-voce");
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     setProfile(loadProfile());
     setApplications(loadApplications());
+    // Primeira visita: mostra o tutorial.
+    if (!hasSeenOnboarding()) setTourOpen(true);
+  }, []);
+
+  const openProfile = useCallback(() => {
+    setTab("perfil");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const openSync = useCallback(() => {
+    setTab("perfil");
+    // Espera a aba montar para rolar até o painel de sincronização.
+    window.setTimeout(() => {
+      document.getElementById("sincronizacao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
   }, []);
 
   const reloadFromStorage = useCallback(() => {
@@ -84,6 +104,7 @@ export function JobHuntApp() {
 
   const sentTotal = applications.filter((a) => a.status !== "saved").length;
   const firstName = profile.fullName.trim().split(/\s+/)[0];
+  const syncActive = sync.code !== null && sync.state !== "off";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:max-w-5xl">
@@ -98,7 +119,17 @@ export function JobHuntApp() {
               <BriefcaseBusiness className="size-4" />
               Central de Emprego
             </div>
-            <SyncStatusPill sync={sync} onOpenSettings={() => setTab("perfil")} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTourOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/25 transition-colors hover:bg-white/25"
+              >
+                <CircleHelp className="size-3.5" />
+                Como usar
+              </button>
+              <SyncStatusPill sync={sync} onOpenSettings={openSync} />
+            </div>
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -152,12 +183,34 @@ export function JobHuntApp() {
           ))}
         </TabsList>
 
-        <TabsContent value="para-voce" className="mt-4">
-          <ForYouJobs
-            profile={profile}
-            applications={applications}
-            onApplicationsChange={setApplications}
-          />
+        <TabsContent value="para-voce" className="mt-4 space-y-4">
+          {isProfileConfigured(profile) ? (
+            <>
+              <GettingStarted
+                profileReady
+                syncActive={syncActive}
+                hasSentApplication={sentTotal > 0}
+                onOpenProfile={openProfile}
+                onOpenSync={openSync}
+                onOpenTour={() => setTourOpen(true)}
+              />
+              <ForYouJobs
+                profile={profile}
+                applications={applications}
+                onApplicationsChange={setApplications}
+              />
+            </>
+          ) : (
+            <GettingStarted
+              variant="full"
+              profileReady={false}
+              syncActive={syncActive}
+              hasSentApplication={sentTotal > 0}
+              onOpenProfile={openProfile}
+              onOpenSync={openSync}
+              onOpenTour={() => setTourOpen(true)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="hoje" className="mt-4 space-y-4">
@@ -200,8 +253,8 @@ export function JobHuntApp() {
               <li>Marque como “Aplicada” e anote data/contato.</li>
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
-              No chat do Cursor, cole o link da vaga e peça: “ajusta meu
-              resumo para esta vaga” — eu personalizo texto com você.
+              Dica: na aba Preparar, cole a descrição da vaga para ver o quanto ela
+              combina com você e gerar um texto de apresentação.
             </p>
           </div>
           <LinkedInHub profile={profile} compact />
@@ -235,15 +288,37 @@ export function JobHuntApp() {
         </TabsContent>
 
         <TabsContent value="perfil" className="mt-4 space-y-6">
+          <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 text-sm">
+            <p className="font-medium">Como funciona esta aba</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Salve seus dados:</strong> tudo fica só neste
+                navegador. Gere um código + PIN abaixo para guardar na nuvem e abrir no celular e no PC.
+              </li>
+              <li>
+                <strong className="text-foreground">Monte o perfil:</strong> escolha um modelo ou
+                escreva suas palavras-chave e skills. A caixa “Buscas que serão feitas” mostra o que
+                o site vai procurar.
+              </li>
+              <li>
+                <strong className="text-foreground">Personalize:</strong> nível, onde trabalhar,
+                idade das vagas, encaixe mínimo e fontes. Salva sozinho e muda na hora o Para você.
+              </li>
+            </ol>
+          </div>
+          <div id="sincronizacao" className="scroll-mt-4">
           <SyncPanel
             profile={profile}
             applications={applications}
             sync={sync}
             onSynced={reloadFromStorage}
           />
+          </div>
           <ProfileForm profile={profile} onProfileChange={setProfile} />
         </TabsContent>
       </Tabs>
+
+      <OnboardingTour open={tourOpen} onOpenChange={setTourOpen} onFinish={openProfile} />
     </div>
   );
 }

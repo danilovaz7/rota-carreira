@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { JobProfile } from "@/types/job-hunt";
+import { isProfileConfigured } from "@/lib/profile";
 import {
   buildBrazilJobBoardLinks,
-  SUGGESTED_SEARCHES_FOR_DANILO,
+  suggestedSearches,
 } from "@/lib/brazil-job-boards";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
 
 export function BrazilJobBoards({ profile }: Props) {
   const boards = buildBrazilJobBoardLinks(profile);
+  const searches = isProfileConfigured(profile) ? suggestedSearches(profile) : [];
 
   return (
     <Card>
@@ -31,10 +33,11 @@ export function BrazilJobBoards({ profile }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {searches.length > 0 && (
         <div className="rounded-lg border bg-muted/30 p-3 text-sm">
           <p className="font-medium">Buscas sugeridas para o seu perfil</p>
           <ul className="mt-2 flex flex-wrap gap-2">
-            {SUGGESTED_SEARCHES_FOR_DANILO.map((s) => (
+            {searches.map((s) => (
               <li key={s}>
                 <Badge variant="secondary" className="font-normal">
                   {s}
@@ -43,6 +46,7 @@ export function BrazilJobBoards({ profile }: Props) {
             ))}
           </ul>
         </div>
+        )}
 
         <ul className="grid gap-3 sm:grid-cols-2">
           {boards.map((b) => (
