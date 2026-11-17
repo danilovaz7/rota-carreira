@@ -145,39 +145,41 @@ export function OnboardingTour({ open, onOpenChange, onFinish }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
-        <div className={cn("relative bg-gradient-to-br p-6 text-white", step.tone)}>
+      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden p-0 [&>[data-slot=dialog-close]]:text-white [&>[data-slot=dialog-close]]:hover:bg-white/20 sm:max-h-[calc(100dvh-4rem)] sm:max-w-lg">
+        <div className={cn("relative shrink-0 bg-gradient-to-br px-4 py-4 pr-10 text-white sm:p-6 sm:pr-12", step.tone)}>
           <div
             aria-hidden
             className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/15 blur-2xl"
           />
-          <div className="relative flex items-start gap-4">
-            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur">
-              <Icon className="size-6" />
+          <div className="relative flex items-center gap-3 sm:items-start sm:gap-4">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/20 ring-1 ring-white/30 backdrop-blur sm:size-12 sm:rounded-2xl">
+              <Icon className="size-5 sm:size-6" />
             </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-white/80">
+            <div className="min-w-0 space-y-0.5 sm:space-y-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-white/80 sm:text-xs">
                 {step.eyebrow}
               </p>
-              <DialogTitle className="text-xl font-semibold leading-snug text-white">
+              <DialogTitle className="text-base font-semibold leading-snug text-white sm:text-xl">
                 {step.title}
               </DialogTitle>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 p-6">
-          <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+        <div
+          key={index}
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:space-y-4 sm:p-6">
+          <DialogDescription className="text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
             {step.intro}
           </DialogDescription>
 
-          <ul className="space-y-3">
+          <ul className="space-y-2 sm:space-y-3">
             {step.points.map((p) => {
               const PointIcon = p.icon;
               return (
-                <li key={p.title} className="flex gap-3 rounded-xl border bg-muted/30 p-3">
+                <li key={p.title} className="flex gap-2.5 rounded-xl border bg-muted/30 p-2.5 sm:gap-3 sm:p-3">
                   <PointIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <div className="space-y-0.5">
+                  <div className="min-w-0 space-y-0.5">
                     <p className="text-sm font-medium text-foreground">{p.title}</p>
                     <p className="text-xs leading-relaxed text-muted-foreground">{p.text}</p>
                   </div>
@@ -185,45 +187,52 @@ export function OnboardingTour({ open, onOpenChange, onFinish }: Props) {
               );
             })}
           </ul>
+        </div>
 
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <div className="flex gap-1.5" aria-label={`Passo ${index + 1} de ${STEPS.length}`}>
-              {STEPS.map((s, i) => (
-                <button
-                  key={s.title}
-                  type="button"
-                  aria-label={`Ir para o passo ${i + 1}`}
-                  onClick={() => setIndex(i)}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all",
-                    i === index ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
-                  )}
-                />
-              ))}
-            </div>
-            <div className="flex gap-2">
-              {index === 0 ? (
-                <Button type="button" variant="ghost" onClick={() => close(false)}>
-                  Pular
-                </Button>
-              ) : (
-                <Button type="button" variant="ghost" className="gap-1" onClick={() => setIndex(index - 1)}>
-                  <ArrowLeft className="size-4" />
-                  Voltar
-                </Button>
-              )}
-              {last ? (
-                <Button type="button" className="gap-1" onClick={finish}>
-                  Montar meu perfil
-                  <ArrowRight className="size-4" />
-                </Button>
-              ) : (
-                <Button type="button" className="gap-1" onClick={() => setIndex(index + 1)}>
-                  Próximo
-                  <ArrowRight className="size-4" />
-                </Button>
-              )}
-            </div>
+        <div className="shrink-0 space-y-3 border-t bg-popover px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 sm:px-6 sm:py-4">
+          <div
+            className="flex items-center justify-center gap-1.5 sm:justify-start"
+            aria-label={`Passo ${index + 1} de ${STEPS.length}`}
+          >
+            {STEPS.map((s, i) => (
+              <button
+                key={s.title}
+                type="button"
+                aria-label={`Ir para o passo ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
+                )}
+              />
+            ))}
+            <span className="ml-2 text-xs text-muted-foreground sm:hidden">
+              {index + 1}/{STEPS.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            {index === 0 ? (
+              <Button type="button" variant="ghost" onClick={() => close(false)}>
+                Pular
+              </Button>
+            ) : (
+              <Button type="button" variant="ghost" className="gap-1" onClick={() => setIndex(index - 1)}>
+                <ArrowLeft className="size-4" />
+                Voltar
+              </Button>
+            )}
+            {last ? (
+              <Button type="button" className="gap-1" onClick={finish}>
+                <span className="sm:hidden">Ir ao perfil</span>
+                <span className="hidden sm:inline">Montar meu perfil</span>
+                <ArrowRight className="size-4" />
+              </Button>
+            ) : (
+              <Button type="button" className="gap-1" onClick={() => setIndex(index + 1)}>
+                Próximo
+                <ArrowRight className="size-4" />
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
