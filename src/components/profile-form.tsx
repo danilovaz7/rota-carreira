@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { JobProfile, JobSourceToggles } from "@/types/job-hunt";
 import { DEFAULT_PROFILE, SEARCH_PRESETS } from "@/types/job-hunt";
-import type { SearchPreset } from "@/types/job-hunt";
+import type { CareerArea, SearchPreset } from "@/types/job-hunt";
 import { saveProfile } from "@/lib/storage";
 import { analyzeKeywords } from "@/lib/jobs/profile-search-terms";
 
@@ -21,6 +21,29 @@ type Props = {
 };
 
 const AGE_OPTIONS = [3, 7, 14, 21, 30];
+const AREA_OPTIONS: { value: CareerArea; label: string; hint: string }[] = [
+  { value: "tech", label: "Tecnologia", hint: "Dev, dados, design digital, Power Platform…" },
+  { value: "other", label: "Outra área", hint: "Engenharia, administrativo, logística, RH, saúde…" },
+];
+
+/** Exemplos dos campos de texto conforme a área escolhida. */
+const PLACEHOLDERS: Record<CareerArea, { headline: string; keywords: string; skills: string; exclude: string; summary: string }> = {
+  tech: {
+    headline: "Desenvolvedor Full Stack",
+    keywords: "desenvolvedor react júnior, desenvolvedor node.js júnior, power platform",
+    skills: "JavaScript, TypeScript, React, Node.js, SQL",
+    exclude: "java, php, vendas, suporte técnico",
+    summary: "O que você entrega, stack principal, tipo de empresa que busca…",
+  },
+  other: {
+    headline: "Engenheiro Químico",
+    keywords: "engenheiro químico júnior, engenheiro de processos júnior, analista de qualidade",
+    skills: "Controle de qualidade, ISO 9001, Lean, AutoCAD, Excel",
+    exclude: "vendas, estágio, temporário",
+    summary: "Sua formação, o que você já fez e o tipo de empresa que busca…",
+  },
+};
+
 const SCORE_OPTIONS = [
   { value: 20, label: "Mais vagas" },
   { value: 30, label: "Equilibrado" },
@@ -30,8 +53,8 @@ const SCORE_OPTIONS = [
 const SOURCE_LABELS: { key: keyof JobSourceToggles; label: string; hint: string }[] = [
   { key: "linkedin", label: "LinkedIn", hint: "Maior volume de vagas no Brasil." },
   { key: "gupy", label: "Gupy", hint: "Itaú, Ambev, Localiza e milhares de outras." },
-  { key: "companies", label: "Sites de empresas", hint: "Nubank, Inter, XP, Stone, Mercado Livre…" },
-  { key: "remoteBoards", label: "Sites remotos internacionais", hint: "Remotive, RemoteOK, Arbeitnow, Jobicy (em inglês)." },
+  { key: "companies", label: "Sites de empresas", hint: "Nubank, Inter, XP, Stone, Mercado Livre… (têm vagas de várias áreas)." },
+  { key: "remoteBoards", label: "Sites remotos internacionais", hint: "Remotive, RemoteOK, Arbeitnow, Jobicy. Em inglês e quase só de TI." },
 ];
 
 function Section({
@@ -127,8 +150,22 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
     update({ sources: { ...profile.sources, [key]: value } });
   }
 
+  function setArea(area: CareerArea) {
+    if (area === profile.careerArea) return;
+    update({
+      careerArea: area,
+      // Os sites remotos internacionais são quase só de TI.
+      sources: area === "other" ? { ...profile.sources, remoteBoards: false } : profile.sources,
+    });
+  }
+
   function applyPreset(preset: SearchPreset) {
     update({
+      careerArea: preset.area,
+      sources:
+        preset.area === "other" && preset.area !== profile.careerArea
+          ? { ...profile.sources, remoteBoards: false }
+          : profile.sources,
       headline: preset.headline,
       keywords: preset.keywords,
       skills: preset.skills,
@@ -139,6 +176,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
     update({
       includeInternships: DEFAULT_PROFILE.includeInternships,
       includeMidLevel: DEFAULT_PROFILE.includeMidLevel,
+      includeSenior: DEFAULT_PROFILE.includeSenior,
       acceptRemote: DEFAULT_PROFILE.acceptRemote,
       acceptOnsite: DEFAULT_PROFILE.acceptOnsite,
       regionBaixada: DEFAULT_PROFILE.regionBaixada,
@@ -150,6 +188,8 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
     });
   }
 
+  const ph = PLACEHOLDERS[profile.careerArea];
+  const visiblePresets = SEARCH_PRESETS.filter((p) => p.area === profile.careerArea);
   const analysis = useMemo(() => analyzeKeywords(profile), [profile]);
   const noPlace =
     !profile.acceptRemote &&
@@ -183,7 +223,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               id="headline"
               value={profile.headline}
               onChange={(e) => update({ headline: e.target.value })}
-              placeholder="Desenvolvedor Full Stack"
+              placeholder={ph.headline}
             />
           </div>
           <div className="space-y-2">
@@ -220,7 +260,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               rows={3}
               value={profile.resumeSummary}
               onChange={(e) => update({ resumeSummary: e.target.value })}
-              placeholder="O que você entrega, stack principal, tipo de empresa que busca…"
+              placeholder={ph.summary}
             />
           </div>
         </Section>
@@ -230,9 +270,37 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
           description="Cada palavra-chave vira uma busca separada no LinkedIn e na Gupy. Separe por vírgula ou uma por linha."
         >
           <div className="space-y-2 sm:col-span-2">
+            <Label>Sua área</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {AREA_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={profile.careerArea === opt.value}
+                  onClick={() => setArea(opt.value)}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition-colors",
+                    profile.careerArea === opt.value
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "bg-card hover:border-primary/50",
+                  )}
+                >
+                  <span className="block text-sm font-medium">{opt.label}</span>
+                  <span className="block text-xs text-muted-foreground">{opt.hint}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {profile.careerArea === "tech"
+                ? "Liga os filtros de TI: esconde vagas de suporte, vendas e RH que usam palavras de dev, e busca termos extras como “full stack” e “software”."
+                : "Busca neutra: só as suas palavras-chave e skills decidem o que aparece. Funciona para qualquer profissão."}
+            </p>
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
             <Label>Começar com um modelo (você pode editar tudo depois)</Label>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {SEARCH_PRESETS.map((preset) => (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {visiblePresets.map((preset) => (
                 <button
                   key={preset.id}
                   type="button"
@@ -253,7 +321,7 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               rows={3}
               value={profile.keywords}
               onChange={(e) => update({ keywords: e.target.value })}
-              placeholder="desenvolvedor react júnior, desenvolvedor node.js júnior, power platform"
+              placeholder={ph.keywords}
             />
           </div>
 
@@ -280,8 +348,9 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               </ul>
             )}
             <p className="text-xs text-muted-foreground">
-              Depois das suas palavras-chave, o site completa com o título e as primeiras
-              skills (até 8 buscas).
+              {profile.careerArea === "tech"
+                ? "Depois das suas palavras-chave, o site completa com o título e as primeiras skills (até 8 buscas)."
+                : "Depois das suas palavras-chave, o site completa com o título (até 8 buscas). As skills contam só na nota de encaixe."}
             </p>
           </div>
 
@@ -292,10 +361,12 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               rows={3}
               value={profile.skills}
               onChange={(e) => update({ skills: e.target.value })}
+              placeholder={ph.skills}
             />
             <p className="text-xs text-muted-foreground">
-              Cada skill encontrada na vaga aumenta o encaixe. Sinônimos contam (React ↔ Next.js,
-              Power Platform ↔ Power BI, SQL ↔ PostgreSQL).
+              {profile.careerArea === "tech"
+                ? "Cada skill encontrada na vaga aumenta o encaixe. Sinônimos contam (React ↔ Next.js, Power Platform ↔ Power BI, SQL ↔ PostgreSQL)."
+                : "Cada skill encontrada no texto da vaga aumenta o encaixe. Use os termos que aparecem nos anúncios da sua área."}
             </p>
           </div>
 
@@ -305,12 +376,15 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
               id="exclude"
               value={profile.excludeKeywords}
               onChange={(e) => update({ excludeKeywords: e.target.value })}
-              placeholder="java, php, vendas, suporte técnico"
+              placeholder={ph.exclude}
             />
           </div>
         </Section>
 
-        <Section title="Nível da vaga" description="Sênior, liderança e coordenação ficam sempre de fora.">
+        <Section
+          title="Nível da vaga"
+          description="Júnior e trainee sempre entram. Marque o que mais você aceita."
+        >
           <CheckRow
             id="includeInternships"
             checked={profile.includeInternships}
@@ -323,7 +397,14 @@ export function ProfileForm({ profile, onProfileChange }: Props) {
             checked={profile.includeMidLevel}
             onChange={(v) => update({ includeMidLevel: v })}
             label="Incluir pleno"
-            hint="Aparecem com nota menor que as júnior."
+            hint={profile.includeSenior ? "Pleno e especialista entram com nota alta." : "Aparecem com nota menor que as júnior."}
+          />
+          <CheckRow
+            id="includeSenior"
+            checked={profile.includeSenior}
+            onChange={(v) => update({ includeSenior: v })}
+            label="Incluir sênior e gestão"
+            hint="Sênior, coordenação, supervisão e gerência. Para quem já tem experiência."
           />
         </Section>
 

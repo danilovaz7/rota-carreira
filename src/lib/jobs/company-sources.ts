@@ -151,9 +151,13 @@ type EightfoldPosition = {
 
 const MELI_QUERIES = ["software", "developer", "desenvolvedor", "engineer", "junior", "trainee"];
 
-export async function fetchMercadoLivreJobs(): Promise<UnifiedJob[]> {
-  return cached("meli", async () => {
-    const pages = MELI_QUERIES.flatMap((query) =>
+export async function fetchMercadoLivreJobs(profile?: JobProfile): Promise<UnifiedJob[]> {
+  // Fora de TI, busca pelos termos do próprio perfil (logística, financeiro, RH…).
+  const queries =
+    profile?.careerArea === "other" ? buildCompanySiteTerms(profile, 6) : MELI_QUERIES;
+  if (!queries.length) return [];
+  return cached(`meli:${queries.join("|")}`, async () => {
+    const pages = queries.flatMap((query) =>
       [0, 10, 20].map((start) => ({ query, start })),
     );
     const results = await mapLimit(pages, 4, async ({ query, start }) => {
@@ -329,7 +333,7 @@ export async function fetchAllCompanySiteJobs(
 ): Promise<UnifiedJob[]> {
   const tasks: Promise<UnifiedJob[]>[] = [];
   if (sources.gupy) tasks.push(fetchGupyJobs(searchTerms, includeInternships, profile));
-  if (sources.companies) tasks.push(fetchCompanyBoardJobs(), fetchMercadoLivreJobs());
+  if (sources.companies) tasks.push(fetchCompanyBoardJobs(), fetchMercadoLivreJobs(profile));
   const results = await Promise.allSettled(tasks);
   return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }

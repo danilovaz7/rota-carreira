@@ -1,4 +1,5 @@
 import type { JobProfile } from "@/types/job-hunt";
+import { isTechProfile } from "@/lib/profile";
 import type { ScoredJob, UnifiedJob } from "@/lib/jobs/types";
 import {
   WEAK_SKILLS,
@@ -16,7 +17,14 @@ export function isInternshipJob(job: UnifiedJob): boolean {
 }
 
 const SENIOR_RE =
-  /\b(senior|staff|principal|director|diretor|diretora|head of|lead|leader|lider|tech lead|chapter lead|sr\.?|coordenador|coordenadora|coordenacao|coordinator|gerente|manager|arquiteto|arquiteta|architect|5\+? ?years|7\+? ?years|10\+? ?years)\b/;
+  /\b(senior|staff|principal|director|diretor|diretora|head of|lead|leader|lider|tech lead|chapter lead|sr\.?|coordenador|coordenadora|coordenacao|coordinator|supervisor|supervisora|gerente|manager|5\+? ?years|7\+? ?years|10\+? ?years)\b/;
+
+/** Em TI, "arquiteto" é cargo sênior; em outras áreas é a própria profissão. */
+const TECH_SENIOR_RE = /\b(arquiteto|arquiteta|architect)\b/;
+
+function isSeniorTitle(title: string, tech: boolean): boolean {
+  return SENIOR_RE.test(title) || (tech && TECH_SENIOR_RE.test(title));
+}
 
 /** Nível intermediário: só entra se o perfil aceitar pleno ou se o título também disser júnior. */
 const MID_LEVEL_RE = /\b(pleno|pl(?! sql)|mid level|mid|intermediate|especialista|specialist|iii|iv)\b/;
@@ -27,6 +35,7 @@ const JUNIOR_RE =
 const DEV_TITLE_RE =
   /\b(desenvolvedor|desenvolvedora|developer|dev|software|full stack|front end|back end|programador|programadora|engenheiro de software|engenheira de software|analista de sistemas|analista desenvolvedor|power platform|power apps|rpa|mobile)\b/;
 
+/** Só para perfis de TI: áreas que usam palavras de dev ("desenvolvimento", "suporte") mas não são dev. */
 const NON_DEV_RE =
   /\b(desenvolvimento de (mercado|produto|negocios|novos negocios|pessoas|talentos)|desenvolvimento (organizacional|humano|comercial)|analista fiscal|\[modelo\]|vagas? testes?|account executive|sales development|business development|recruiter|recrutador|customer support|customer success|support analyst|support engineer|analista de suporte|suporte tecnico|help ?desk|service desk|marketing manager|paid media|key account|clinical data|transport planner|quality associate|quantitative trader)\b/;
 
@@ -57,7 +66,32 @@ const ROLE_WORD_SYNONYMS: Record<string, string[]> = {
   data: ["dados"],
   engenheiro: ["engineer", "engenheira"],
   sistemas: ["systems", "software"],
+  assistente: ["assistant"],
+  auxiliar: ["assistente"],
+  vendedor: ["vendas", "sales", "consultor", "executivo"],
+  vendas: ["sales", "comercial"],
+  comercial: ["vendas", "sales"],
+  financeiro: ["financeira", "finance", "financial", "financas"],
+  contabil: ["contabilidade", "accounting", "accountant"],
+  logistica: ["logistics", "supply chain"],
+  qualidade: ["quality"],
+  producao: ["production", "manufacturing"],
+  quimico: ["chemical", "chemist"],
+  processos: ["process"],
+  marketing: ["mkt"],
+  rh: ["recursos humanos", "human resources", "people"],
+  enfermeiro: ["nurse"],
 };
+
+/** Variações de gênero comuns no português: engenheiro/engenheira, vendedor/vendedora. */
+function genderVariants(word: string): string[] {
+  const out: string[] = [];
+  if (word.endsWith("ora")) out.push(word.slice(0, -1));
+  else if (word.endsWith("or")) out.push(`${word}a`);
+  else if (word.endsWith("o")) out.push(`${word.slice(0, -1)}a`);
+  else if (word.endsWith("a")) out.push(`${word.slice(0, -1)}o`);
+  return out;
+}
 
 type ProfileTerms = {
   /** Cada busca/título vira uma lista de palavras que precisam estar no título da vaga. */
@@ -109,7 +143,9 @@ function profileTerms(profile: JobProfile): ProfileTerms {
 }
 
 function roleMatches(title: string, words: string[]): boolean {
-  return words.every((w) => [w, ...(ROLE_WORD_SYNONYMS[w] ?? [])].some((v) => hasTerm(title, v)));
+  return words.every((w) =>
+    [w, ...genderVariants(w), ...(ROLE_WORD_SYNONYMS[w] ?? [])].some((v) => hasTerm(title, v)),
+  );
 }
 
 /** Grande São Paulo e Baixada Santista (texto normalizado). */
@@ -142,7 +178,7 @@ function daysSince(iso: string, now: number): number | null {
 /** True se a vaga cai fora pelos filtros de nível ou pelos termos a evitar. */
 export function isExcludedJob(job: UnifiedJob, profile: JobProfile): boolean {
   const title = normalizeText(job.title);
-  if (SENIOR_RE.test(title)) return true;
+  if (!profile.includeSenior && isSeniorTitle(title, isTechProfile(profile))) return true;
   if (isInternshipJob(job) && !profile.includeInternships) return true;
   if (MID_LEVEL_RE.test(title) && !JUNIOR_RE.test(title) && !profile.includeMidLevel) return true;
   const { exclude } = profileTerms(profile);
@@ -156,8 +192,9 @@ export function scoreJobForProfile(
 ): ScoredJob | null {
   if (isExcludedJob(job, profile)) return null;
 
+  const tech = isTechProfile(profile);
   const title = normalizeText(job.title);
-  if (NON_DEV_RE.test(`${title} ${normalizeText(job.company)}`)) return null;
+  if (tech && NON_DEV_RE.test(`${title} ${normalizeText(job.company)}`)) return null;
 
   const blob = normalizeText(
     `${job.title} ${job.company} ${job.description ?? ""} ${job.tags.join(" ")}`,
@@ -169,7 +206,7 @@ export function scoreJobForProfile(
   const titleSkills = terms.skills.filter((s) => !s.weak && s.terms.some((t) => hasTerm(title, t)));
   const blobSkills = terms.skills.filter((s) => s.terms.some((t) => hasTerm(blob, t)));
   const internship = isInternshipJob(job);
-  const devTitle = DEV_TITLE_RE.test(title);
+  const devTitle = tech && DEV_TITLE_RE.test(title);
 
   const inArea =
     roleHit ||
@@ -182,14 +219,19 @@ export function scoreJobForProfile(
   let score = 0;
 
   // 2. Nível
-  if (internship) {
+  const seniorTitle = isSeniorTitle(title, tech);
+  if (seniorTitle) {
+    // Só chega aqui com "Incluir sênior e gestão" ligado.
+    score += 22;
+    reasons.push("Sênior/gestão");
+  } else if (internship) {
     score += 28;
     reasons.push("Estágio na sua área");
   } else if (JUNIOR_RE.test(title)) {
     score += 30;
     reasons.push("Júnior/trainee no título");
   } else if (MID_LEVEL_RE.test(title)) {
-    score += 8;
+    score += profile.includeSenior ? 20 : 8;
     reasons.push("Pleno");
   } else if (JUNIOR_RE.test(blob)) {
     score += 20;
@@ -197,6 +239,8 @@ export function scoreJobForProfile(
   } else if (!SENIOR_RE.test(blob)) {
     score += 12;
     reasons.push("Sem exigência sênior");
+  } else if (profile.includeSenior || profile.includeMidLevel) {
+    score += 8;
   } else {
     return null;
   }
