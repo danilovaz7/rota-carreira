@@ -15,7 +15,12 @@ export type JobSourceToggles = {
   remoteBoards: boolean;
 };
 
+/** "tech" liga os filtros e atalhos de TI; "other" deixa a busca neutra para qualquer área. */
+export type CareerArea = "tech" | "other";
+
 export type JobProfile = {
+  /** Área de atuação. Perfis antigos sem o campo são tratados como "tech". */
+  careerArea: CareerArea;
   fullName: string;
   headline: string;
   location: string;
@@ -32,6 +37,8 @@ export type JobProfile = {
   includeInternships: boolean;
   /** Se true, vagas pleno também entram (com nota menor). */
   includeMidLevel: boolean;
+  /** Se true, vagas sênior, especialista, coordenação e gerência também entram. */
+  includeSenior: boolean;
   acceptRemote: boolean;
   /** Presencial ou híbrido nas regiões marcadas abaixo. */
   acceptOnsite: boolean;
@@ -64,6 +71,7 @@ export type Application = {
 /** Modelos prontos para quem está começando: preenchem título, palavras-chave e skills. */
 export type SearchPreset = {
   id: string;
+  area: CareerArea;
   label: string;
   description: string;
   headline: string;
@@ -74,6 +82,7 @@ export type SearchPreset = {
 export const SEARCH_PRESETS: SearchPreset[] = [
   {
     id: "dev",
+    area: "tech",
     label: "Desenvolvimento",
     description: "Full stack, front-end e back-end",
     headline: "Desenvolvedor Full Stack",
@@ -83,6 +92,7 @@ export const SEARCH_PRESETS: SearchPreset[] = [
   },
   {
     id: "dados",
+    area: "tech",
     label: "Dados e BI",
     description: "Análise de dados, Power BI e SQL",
     headline: "Analista de Dados",
@@ -91,6 +101,7 @@ export const SEARCH_PRESETS: SearchPreset[] = [
   },
   {
     id: "design",
+    area: "tech",
     label: "Design UI/UX",
     description: "Interfaces, produto e web design",
     headline: "Designer UI/UX",
@@ -99,11 +110,69 @@ export const SEARCH_PRESETS: SearchPreset[] = [
   },
   {
     id: "automacao",
+    area: "tech",
     label: "Power Platform",
     description: "Power Apps, Power Automate e RPA",
     headline: "Desenvolvedor Power Platform",
     keywords: "power platform, desenvolvedor power apps, power automate, rpa júnior",
     skills: "Power Apps, Power Automate, Power BI, SharePoint, Excel",
+  },
+  {
+    id: "engenharia",
+    area: "other",
+    label: "Engenharia",
+    description: "Química, produção, processos e qualidade",
+    headline: "Engenheiro de Processos",
+    keywords:
+      "engenheiro júnior, engenheiro de processos júnior, engenheiro de produção júnior, engenheiro químico júnior, analista de qualidade júnior",
+    skills: "Melhoria contínua, Lean, Controle de qualidade, ISO 9001, AutoCAD, Excel",
+  },
+  {
+    id: "administrativo",
+    area: "other",
+    label: "Administrativo e Financeiro",
+    description: "Assistente, analista financeiro, contábil",
+    headline: "Assistente Administrativo",
+    keywords:
+      "assistente administrativo, analista financeiro júnior, assistente financeiro, analista contábil júnior, auxiliar administrativo",
+    skills: "Excel, Contas a pagar, Contas a receber, Conciliação bancária, ERP, Pacote Office",
+  },
+  {
+    id: "logistica",
+    area: "other",
+    label: "Logística e Comex",
+    description: "Operações, porto, importação e exportação",
+    headline: "Analista de Logística",
+    keywords:
+      "analista de logística júnior, assistente de logística, analista de comércio exterior júnior, assistente de importação, assistente de exportação",
+    skills: "Comércio exterior, Desembaraço aduaneiro, Excel, SAP, Gestão de estoque, Inglês",
+  },
+  {
+    id: "rh",
+    area: "other",
+    label: "Recursos Humanos",
+    description: "Recrutamento, DP e treinamento",
+    headline: "Analista de RH",
+    keywords: "analista de rh júnior, assistente de rh, analista de recrutamento júnior, assistente de departamento pessoal",
+    skills: "Recrutamento e seleção, Departamento pessoal, Folha de pagamento, Treinamento, Excel",
+  },
+  {
+    id: "comercial",
+    area: "other",
+    label: "Vendas e Atendimento",
+    description: "Comercial, SDR e sucesso do cliente",
+    headline: "Executivo de Vendas",
+    keywords: "vendedor, consultor de vendas, assistente comercial, sdr, customer success júnior, atendimento ao cliente",
+    skills: "Negociação, Prospecção, CRM, Atendimento ao cliente, Pós-venda",
+  },
+  {
+    id: "marketing",
+    area: "other",
+    label: "Marketing",
+    description: "Digital, conteúdo e mídias sociais",
+    headline: "Analista de Marketing",
+    keywords: "analista de marketing júnior, assistente de marketing, analista de marketing digital, social media, redator",
+    skills: "Marketing digital, Redes sociais, Google Ads, Meta Ads, SEO, Canva",
   },
 ];
 
@@ -116,6 +185,7 @@ export const DEFAULT_SOURCES: JobSourceToggles = {
 
 /** Perfil vazio: cada pessoa monta o seu na aba Perfil (o tutorial explica). */
 export const DEFAULT_PROFILE: JobProfile = {
+  careerArea: "tech",
   fullName: "",
   headline: "",
   location: "",
@@ -128,6 +198,7 @@ export const DEFAULT_PROFILE: JobProfile = {
   dailyApplyGoal: 5,
   includeInternships: false,
   includeMidLevel: false,
+  includeSenior: false,
   acceptRemote: true,
   acceptOnsite: true,
   regionBaixada: false,

@@ -42,7 +42,7 @@ export function GettingStarted({
       done: profileReady,
       icon: UserRound,
       title: "Monte seu perfil de busca",
-      text: "Escolha um modelo (Dev, Dados, Design…) ou escreva suas palavras-chave e skills.",
+      text: "Escolha sua área (TI ou outra) e um modelo, ou escreva suas palavras-chave e skills.",
       action: { label: "Ir para o Perfil", onClick: onOpenProfile },
     },
     {

@@ -139,7 +139,13 @@ export const WEAK_SKILLS = new Set([
   "tailwind",
 ]);
 
+/** Só põe "júnior" nas buscas automáticas quando a pessoa procura vaga de entrada. */
+function levelSuffix(profile: JobProfile): string {
+  return profile.includeSenior || profile.includeMidLevel ? "" : " júnior";
+}
+
 export function analyzeKeywords(profile: JobProfile, max = 8): KeywordAnalysis {
+  const suffix = levelSuffix(profile);
   const seen = new Set<string>();
   const searches: string[] = [];
   const issues: string[] = [];
@@ -172,19 +178,23 @@ export function analyzeKeywords(profile: JobProfile, max = 8): KeywordAnalysis {
 
   const headline = cleanSearchPhrase(profile.headline);
   if (headline && headline.split(/\s+/).length <= MAX_WORDS_PER_SEARCH) {
-    add(hasLevelWord(headline) ? headline : `${headline} júnior`);
+    add(hasLevelWord(headline) ? headline : `${headline}${suffix}`);
   }
 
-  for (const skill of splitList(profile.skills)) {
+  // Em TI uma skill (React, Power BI) também é nome de vaga; em outras áreas ela só conta na nota.
+  const skillsAsSearches = profile.careerArea !== "other" || searches.length === 0;
+  for (const skill of skillsAsSearches ? splitList(profile.skills) : []) {
     if (searches.length >= max) break;
     if (WEAK_SKILLS.has(normalizeText(skill))) continue;
     if (skill.split(/\s+/).length > 4) continue;
-    add(hasLevelWord(skill) ? skill : `${skill} júnior`);
+    add(hasLevelWord(skill) ? skill : `${skill}${suffix}`);
   }
 
   if (searches.length === 0) {
     issues.push("Nenhuma busca válida: preencha palavras-chave ou o título profissional.");
-    return { searches: ["desenvolvedor júnior", "trainee tecnologia"], issues };
+    const fallback =
+      profile.careerArea === "other" ? ["trainee", "assistente"] : ["desenvolvedor júnior", "trainee tecnologia"];
+    return { searches: fallback, issues };
   }
 
   return { searches, issues };
@@ -246,10 +256,13 @@ export function buildCompanySiteTerms(profile: JobProfile, max = 14): string[] {
     else add(p);
   }
 
-  const looksDev = DEV_PROFILE_RE.test(normalizeText(`${profile.headline} ${profile.keywords}`));
+  const looksDev =
+    profile.careerArea !== "other" &&
+    DEV_PROFILE_RE.test(normalizeText(`${profile.headline} ${profile.keywords}`));
   if (looksDev) for (const t of GENERIC_DEV_TERMS) add(t);
 
-  for (const skill of splitList(profile.skills)) {
+  const skillTerms = profile.careerArea !== "other" || out.length === 0 ? splitList(profile.skills) : [];
+  for (const skill of skillTerms) {
     if (WEAK_SKILLS.has(normalizeText(skill))) continue;
     if (skill.split(/\s+/).length <= 3) add(skill);
   }
@@ -284,7 +297,8 @@ export function buildInternshipSearchTerms(profile: JobProfile, max = 8): string
     if (k.length >= 3 && k.split(/\s+/).length <= MAX_WORDS_PER_SEARCH) add(`estágio ${k}`);
   }
 
-  for (const skill of splitList(profile.skills)) {
+  const internSkills = profile.careerArea !== "other" || out.length === 0 ? splitList(profile.skills) : [];
+  for (const skill of internSkills) {
     if (WEAK_SKILLS.has(normalizeText(skill))) continue;
     if (skill.split(/\s+/).length <= 4) add(`estágio ${skill}`);
   }

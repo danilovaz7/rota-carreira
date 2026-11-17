@@ -29,6 +29,7 @@ export function normalizeProfile(input: unknown): JobProfile {
   >;
 
   return {
+    careerArea: p.careerArea === "other" ? "other" : "tech",
     fullName: str(p.fullName, d.fullName),
     headline: str(p.headline, d.headline),
     location: str(p.location, d.location),
@@ -41,6 +42,7 @@ export function normalizeProfile(input: unknown): JobProfile {
     dailyApplyGoal: num(p.dailyApplyGoal, d.dailyApplyGoal, 1, 50),
     includeInternships: bool(p.includeInternships, d.includeInternships),
     includeMidLevel: bool(p.includeMidLevel, d.includeMidLevel),
+    includeSenior: bool(p.includeSenior, d.includeSenior),
     acceptRemote: bool(p.acceptRemote, d.acceptRemote),
     acceptOnsite: bool(p.acceptOnsite, d.acceptOnsite),
     regionBaixada: bool(p.regionBaixada, d.regionBaixada),
@@ -61,4 +63,8 @@ export function normalizeProfile(input: unknown): JobProfile {
 /** True quando a pessoa já disse o que procura (título ou palavras-chave). */
 export function isProfileConfigured(profile: JobProfile): boolean {
   return Boolean(profile.headline.trim() || profile.keywords.trim());
+}
+
+export function isTechProfile(profile: JobProfile): boolean {
+  return profile.careerArea !== "other";
 }

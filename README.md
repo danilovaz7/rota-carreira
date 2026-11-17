@@ -6,10 +6,11 @@ Painel para acelerar sua busca de emprego no **LinkedIn** (e complementar com va
 
 - **Para você** — busca automática de links no LinkedIn BR, nos sites de carreira das empresas (Gupy, que inclui Itaú; Greenhouse: Nubank, Inter, C6, XP, BTG, Stone…; Lever: CI&T, Neon; Mercado Livre/Mercado Pago) e em APIs remotas. Filtra por nível, local e idade da vaga e dá uma nota de encaixe com base no cargo buscado e nas suas skills.
 - **Perfil de busca** — tudo personalizável:
+  - área: **Tecnologia** (filtros e buscas extras de TI) ou **Outra área** (busca neutra, serve para qualquer profissão), com modelos prontos para cada uma;
   - palavras-chave (uma busca por item, separadas por vírgula, com prévia das buscas e avisos);
   - skills que contam para a nota (com sinônimos leves, ex.: React ↔ Next.js);
   - termos a evitar no título (ex.: java, vendas);
-  - nível: estágio e pleno opcionais (sênior sempre fora);
+  - nível: júnior sempre; estágio, pleno e sênior/gestão opcionais;
   - onde: remoto, presencial/híbrido na Baixada Santista, Grande SP e outras cidades;
   - idade máxima das vagas, encaixe mínimo e quais fontes consultar.
 - **Links prontos** — buscas LinkedIn (Remoto + Easy Apply, vagas recentes, etc.), Google Jobs e Indeed BR.

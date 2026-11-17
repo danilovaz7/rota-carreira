@@ -70,7 +70,7 @@ export function buildOutreachMessage(
 
 Vi a vaga de ${title} na ${company} e me candidatei pelo LinkedIn. Tenho interesse porque a posição combina com minha experiência em ${highlights}.
 
-${headline ? `Atuo como ${headline}` : "Atuo em desenvolvimento de software"}${profile.yearsExperience ? `, com cerca de ${profile.yearsExperience} anos de experiência` : ""}. ${profile.resumeSummary.trim() || "Busco contribuir em times que valorizam entrega, qualidade de código e aprendizado contínuo."}
+${headline ? `Atuo como ${headline}` : profile.careerArea === "other" ? "Estou buscando uma oportunidade na área" : "Atuo em desenvolvimento de software"}${profile.yearsExperience ? `, com cerca de ${profile.yearsExperience} anos de experiência` : ""}. ${profile.resumeSummary.trim() || (profile.careerArea === "other" ? "Busco contribuir com dedicação, organização e vontade de aprender." : "Busco contribuir em times que valorizam entrega, qualidade de código e aprendizado contínuo.")}
 
 Fico à disposição para conversarmos.
 

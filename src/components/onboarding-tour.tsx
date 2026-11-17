@@ -55,7 +55,7 @@ const STEPS: Step[] = [
     eyebrow: "Bem-vindo",
     title: "Suas vagas chegam prontas aqui",
     intro:
-      "O site procura vagas no LinkedIn, na Gupy e nos sites de carreira das empresas, filtra o que combina com você e mostra tudo numa lista só, da melhor para a pior.",
+      "O site procura vagas no LinkedIn, na Gupy e nos sites de carreira das empresas, filtra o que combina com você e mostra tudo numa lista só, da melhor para a pior. Serve para TI e para qualquer outra área.",
     tone: "from-indigo-500 to-violet-500",
     points: [
       { icon: Search, title: "Para você", text: "As vagas que combinam com o seu perfil, com a nota de encaixe e o motivo." },
@@ -71,8 +71,8 @@ const STEPS: Step[] = [
       "Sem perfil o site não sabe o que procurar. Vá na aba Perfil e preencha o básico. Leva 2 minutos.",
     tone: "from-sky-500 to-indigo-500",
     points: [
-      { icon: Sparkles, title: "Comece por um modelo", text: "Desenvolvimento, Dados e BI, Design ou Power Platform. Ele preenche tudo e você ajusta." },
-      { icon: Search, title: "Palavras-chave", text: "Cada item separado por vírgula vira uma busca. Ex.: desenvolvedor react júnior, analista de dados júnior." },
+      { icon: Sparkles, title: "Escolha sua área e um modelo", text: "Tecnologia (dev, dados, design) ou outra área (engenharia, administrativo, logística, RH, vendas…). O modelo preenche tudo e você ajusta." },
+      { icon: Search, title: "Palavras-chave", text: "Cada item separado por vírgula vira uma busca. Ex.: desenvolvedor react júnior, analista de logística júnior, engenheiro químico." },
       { icon: CheckCircle2, title: "Skills", text: "As mais importantes primeiro. Cada skill encontrada na vaga aumenta a nota de encaixe." },
     ],
   },
@@ -84,7 +84,7 @@ const STEPS: Step[] = [
     tone: "from-emerald-500 to-teal-500",
     points: [
       { icon: MapPin, title: "Onde trabalhar", text: "Remoto, presencial ou híbrido, e em quais regiões ou cidades." },
-      { icon: SlidersHorizontal, title: "Nível e filtros", text: "Incluir estágio ou pleno, idade máxima das vagas e encaixe mínimo." },
+      { icon: SlidersHorizontal, title: "Nível e filtros", text: "Júnior sempre entra; inclua estágio, pleno ou sênior/gestão. Escolha também a idade máxima das vagas e o encaixe mínimo." },
       { icon: Search, title: "Fontes e termos a evitar", text: "Escolha onde procurar e esconda vagas com palavras que não te interessam (ex.: vendas)." },
     ],
   },
