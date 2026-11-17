@@ -57,3 +57,8 @@ export function normalizeProfile(input: unknown): JobProfile {
     },
   };
 }
+
+/** True quando a pessoa já disse o que procura (título ou palavras-chave). */
+export function isProfileConfigured(profile: JobProfile): boolean {
+  return Boolean(profile.headline.trim() || profile.keywords.trim());
+}

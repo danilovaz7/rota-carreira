@@ -61,9 +61,51 @@ export type Application = {
   appliedAt?: string;
 };
 
-/** Palavras-chave recomendadas para o currículo do Danilo (uma busca por item). */
-export const RECOMMENDED_KEYWORDS =
-  "desenvolvedor full stack júnior, desenvolvedor react júnior, desenvolvedor node.js júnior, desenvolvedor front-end júnior, power platform, analista de dados júnior";
+/** Modelos prontos para quem está começando: preenchem título, palavras-chave e skills. */
+export type SearchPreset = {
+  id: string;
+  label: string;
+  description: string;
+  headline: string;
+  keywords: string;
+  skills: string;
+};
+
+export const SEARCH_PRESETS: SearchPreset[] = [
+  {
+    id: "dev",
+    label: "Desenvolvimento",
+    description: "Full stack, front-end e back-end",
+    headline: "Desenvolvedor Full Stack",
+    keywords:
+      "desenvolvedor full stack júnior, desenvolvedor front-end júnior, desenvolvedor back-end júnior, desenvolvedor react júnior",
+    skills: "JavaScript, TypeScript, React, Node.js, SQL, APIs REST, Git, HTML, CSS",
+  },
+  {
+    id: "dados",
+    label: "Dados e BI",
+    description: "Análise de dados, Power BI e SQL",
+    headline: "Analista de Dados",
+    keywords: "analista de dados júnior, analista de bi júnior, power bi, business intelligence",
+    skills: "Power BI, SQL, Excel, Python, DAX, Power Query",
+  },
+  {
+    id: "design",
+    label: "Design UI/UX",
+    description: "Interfaces, produto e web design",
+    headline: "Designer UI/UX",
+    keywords: "designer ui ux júnior, product designer júnior, web designer, designer gráfico júnior",
+    skills: "Figma, UI Design, UX, Photoshop, Illustrator, Design System",
+  },
+  {
+    id: "automacao",
+    label: "Power Platform",
+    description: "Power Apps, Power Automate e RPA",
+    headline: "Desenvolvedor Power Platform",
+    keywords: "power platform, desenvolvedor power apps, power automate, rpa júnior",
+    skills: "Power Apps, Power Automate, Power BI, SharePoint, Excel",
+  },
+];
 
 export const DEFAULT_SOURCES: JobSourceToggles = {
   linkedin: true,
@@ -72,25 +114,24 @@ export const DEFAULT_SOURCES: JobSourceToggles = {
   remoteBoards: true,
 };
 
+/** Perfil vazio: cada pessoa monta o seu na aba Perfil (o tutorial explica). */
 export const DEFAULT_PROFILE: JobProfile = {
-  fullName: "Danilo Vaz de Oliveira Bogue",
-  headline: "Desenvolvedor Full Stack",
-  location: "Santos, SP",
-  keywords: RECOMMENDED_KEYWORDS,
-  skills:
-    "React, Node.js, TypeScript, JavaScript, Next.js, Power Platform, Power BI, SQL, PostgreSQL, MySQL, Express, APIs REST, WordPress, React Native, Tailwind CSS, Git",
-  excludeKeywords: "vendas, comercial, suporte técnico, call center",
-  yearsExperience: "1",
-  linkedInUrl: "https://www.linkedin.com/in/danilo-vaz-3442bb2b0",
-  resumeSummary:
-    "Desenvolvedor full stack formando em ADS pela Fatec (12/2026). Freelancer na Forumpsico (plataforma de cursos em WordPress: cadastro, pagamentos, plugins) e estagiário na DP World criando apps e automações com Power Platform. Projetos em React, Node.js e TypeScript. Inglês avançado.",
+  fullName: "",
+  headline: "",
+  location: "",
+  keywords: "",
+  skills: "",
+  excludeKeywords: "",
+  yearsExperience: "",
+  linkedInUrl: "",
+  resumeSummary: "",
   dailyApplyGoal: 5,
   includeInternships: false,
   includeMidLevel: false,
   acceptRemote: true,
   acceptOnsite: true,
-  regionBaixada: true,
-  regionGreaterSP: true,
+  regionBaixada: false,
+  regionGreaterSP: false,
   extraCities: "",
   maxAgeDays: 21,
   minScore: 30,

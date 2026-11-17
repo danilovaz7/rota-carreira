@@ -1,4 +1,4 @@
-import { primaryKeyword } from "@/lib/jobs/profile-search-terms";
+import { buildSearchTermsFromProfile, primaryKeyword } from "@/lib/jobs/profile-search-terms";
 import type { JobProfile } from "@/types/job-hunt";
 
 export type JobBoardLink = {
@@ -80,7 +80,7 @@ export function buildBrazilJobBoardLinks(profile: JobProfile): JobBoardLink[] {
     {
       id: "infojobs",
       name: "InfoJobs",
-      description: "Tradicional; busque Full Stack + Santos/SP/remoto.",
+      description: "Tradicional; combine o cargo com a sua cidade ou “remoto”.",
       href: `https://www.infojobs.com.br/vagas-de-emprego.aspx?palabra=${q("desenvolvedor full stack")}`,
       tags: ["BR"],
     },
@@ -108,10 +108,7 @@ export function buildBrazilJobBoardLinks(profile: JobProfile): JobBoardLink[] {
   ];
 }
 
-export const SUGGESTED_SEARCHES_FOR_DANILO = [
-  "desenvolvedor júnior full stack react",
-  "estágio desenvolvimento sistemas santos",
-  "power platform desenvolvedor",
-  "node react typescript remoto brasil",
-  "analista desenvolvimento júnior",
-];
+/** Buscas sugeridas a partir do perfil (as mesmas usadas no Para você). */
+export function suggestedSearches(profile: JobProfile): string[] {
+  return buildSearchTermsFromProfile(profile, 6);
+}
