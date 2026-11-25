@@ -5,11 +5,10 @@ import type { LucideIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BriefcaseBusiness,
-  CalendarCheck,
   CircleHelp,
+  Globe,
   ListChecks,
   NotebookPen,
-  Search,
   Sparkles,
   Target,
   UserRound,
@@ -31,11 +30,9 @@ import { isProfileConfigured } from "@/lib/profile";
 
 const TABS: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "para-voce", label: "Para você", icon: Sparkles },
-  { value: "rastreador", label: "Rastreador", icon: ListChecks },
-  { value: "vagas", label: "Achar vagas", icon: Search },
-  { value: "linkedin", label: "LinkedIn", icon: BriefcaseBusiness },
+  { value: "rastreador", label: "Minhas vagas", icon: ListChecks },
+  { value: "outros-sites", label: "Outros sites", icon: Globe },
   { value: "preparar", label: "Preparar", icon: NotebookPen },
-  { value: "hoje", label: "Rotina", icon: CalendarCheck },
   { value: "perfil", label: "Perfil", icon: UserRound },
 ];
 
@@ -108,14 +105,10 @@ export function JobHuntApp() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:max-w-5xl">
-      <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-5 text-white shadow-lg shadow-indigo-600/20 sm:p-7">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-white/10 blur-2xl"
-        />
-        <div className="relative space-y-4">
+      <header className="rounded-2xl bg-zinc-900 p-5 text-white sm:p-7">
+        <div className="space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-indigo-100">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <BriefcaseBusiness className="size-4" />
               Central de Emprego
             </div>
@@ -123,7 +116,7 @@ export function JobHuntApp() {
               <button
                 type="button"
                 onClick={() => setTourOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/25 transition-colors hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/15 transition-colors hover:bg-white/20"
               >
                 <CircleHelp className="size-3.5" />
                 Como usar
@@ -132,19 +125,19 @@ export function JobHuntApp() {
             </div>
           </div>
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               {firstName ? `Bora, ${firstName}!` : "Bora achar sua vaga!"}
             </h1>
-            <p className="max-w-lg text-sm text-indigo-100 sm:text-base">
+            <p className="max-w-lg text-sm text-zinc-400 sm:text-base">
               As vagas chegam prontas aqui. Abra o link, candidate-se e marque
               como enviada.
             </p>
           </div>
 
           <div className="grid grid-cols-[1fr_auto] items-stretch gap-3">
-            <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur">
+            <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="inline-flex items-center gap-1.5 text-indigo-100">
+                <span className="inline-flex items-center gap-1.5 text-zinc-400">
                   <Target className="size-4" />
                   Meta de hoje
                 </span>
@@ -152,16 +145,16 @@ export function JobHuntApp() {
                   {appliedToday}/{goal}
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-white transition-all"
+                  className="h-full rounded-full bg-teal-400 transition-all"
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
-            <div className="rounded-2xl bg-white/10 px-4 py-2.5 text-center ring-1 ring-white/15 backdrop-blur">
+            <div className="rounded-xl bg-white/5 px-4 py-2.5 text-center ring-1 ring-white/10">
               <p className="text-xl font-semibold tabular-nums">{sentTotal}</p>
-              <p className="text-[11px] uppercase tracking-wide text-indigo-100">Enviadas</p>
+              <p className="text-[11px] uppercase tracking-wide text-zinc-400">Enviadas</p>
             </div>
           </div>
         </div>
@@ -213,58 +206,13 @@ export function JobHuntApp() {
           )}
         </TabsContent>
 
-        <TabsContent value="hoje" className="mt-4 space-y-4">
-          <div className="rounded-xl border bg-muted/30 p-4 text-sm leading-relaxed">
-            <p className="font-medium">Rotina sugerida (45–60 min)</p>
-            <ol className="mt-2 list-decimal space-y-2 pl-5 text-muted-foreground">
-              <li>
-                Abra{" "}
-                <button
-                  type="button"
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                  onClick={() => setTab("vagas")}
-                >
-                  Achar vagas
-                </button>{" "}
-                (Gupy, Programathor, agregador remoto) +{" "}
-                <button
-                  type="button"
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                  onClick={() => setTab("linkedin")}
-                >
-                  LinkedIn
-                </button>
-                .
-              </li>
-              <li>
-                Salve 10–15 vagas no rastreador como “Salva” enquanto navega.
-              </li>
-              <li>
-                Para cada vaga boa, use{" "}
-                <button
-                  type="button"
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                  onClick={() => setTab("preparar")}
-                >
-                  Preparar
-                </button>{" "}
-                e aplique no LinkedIn.
-              </li>
-              <li>Marque como “Aplicada” e anote data/contato.</li>
-            </ol>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Dica: na aba Preparar, cole a descrição da vaga para ver o quanto ela
-              combina com você e gerar um texto de apresentação.
-            </p>
-          </div>
-          <LinkedInHub profile={profile} compact />
-        </TabsContent>
-
-        <TabsContent value="linkedin" className="mt-4">
+        <TabsContent value="outros-sites" className="mt-4 space-y-6">
+          <p className="text-sm text-muted-foreground">
+            O <strong className="text-foreground">Para você</strong> já busca sozinho no LinkedIn, na Gupy e
+            nos sites das empresas. Aqui ficam os atalhos para o que ele não cobre: buscas prontas no
+            LinkedIn (para criar alertas), outros portais brasileiros e vagas remotas internacionais.
+          </p>
           <LinkedInHub profile={profile} />
-        </TabsContent>
-
-        <TabsContent value="vagas" className="mt-4">
           <DiscoverJobs
             profile={profile}
             applications={applications}

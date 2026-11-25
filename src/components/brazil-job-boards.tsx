@@ -28,7 +28,7 @@ export function BrazilJobBoards({ profile }: Props) {
       <CardHeader>
         <CardTitle>Portais além do LinkedIn</CardTitle>
         <CardDescription>
-          Abra 2–3 sites por dia e salve links no rastreador.{" "}
+          Abra 2–3 sites por dia e salve links em “Minhas vagas”.{" "}
           {profile.careerArea === "other"
             ? "Gupy, Catho e InfoJobs têm vagas de quase todas as áreas."
             : "Gupy + Programathor + GeekHunter costumam ser o trio mais útil para dev júnior/pleno no BR."}

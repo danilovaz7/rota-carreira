@@ -116,7 +116,7 @@ export function ApplicationTracker({
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Rastreador de candidaturas</CardTitle>
+          <CardTitle>Minhas vagas</CardTitle>
           <CardDescription>
             {applications.length} no total · {stats.applied ?? 0} aplicadas ·{" "}
             {stats.interview ?? 0} entrevistas

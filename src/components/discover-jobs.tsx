@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,6 +16,17 @@ import type { Application, JobProfile } from "@/types/job-hunt";
 import { newApplicationId, saveApplications } from "@/lib/storage";
 import type { UnifiedJob } from "@/lib/jobs/types";
 import { BrazilJobBoards } from "@/components/brazil-job-boards";
+import { WEAK_SKILLS, normalizeText, splitList } from "@/lib/jobs/profile-search-terms";
+
+/**
+ * Busca inicial a partir do perfil: as duas primeiras skills fortes (React, Power BI…).
+ * Esses sites são em inglês e exigem todos os termos, então menos palavras rendem mais.
+ */
+function defaultSearch(profile: JobProfile): string {
+  const strong = splitList(profile.skills).filter((s) => !WEAK_SKILLS.has(normalizeText(s)));
+  if (strong.length) return strong.slice(0, 2).join(" ");
+  return profile.headline.trim().split(/\s+/).slice(0, 2).join(" ");
+}
 
 type Props = {
   profile: JobProfile;
@@ -28,9 +39,7 @@ export function DiscoverJobs({
   applications,
   onApplicationsChange,
 }: Props) {
-  const [search, setSearch] = useState(
-    "react node typescript junior",
-  );
+  const [search, setSearch] = useState(() => defaultSearch(profile));
   const [jobs, setJobs] = useState<UnifiedJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +63,11 @@ export function DiscoverJobs({
     }
   }, [search]);
 
+  // Busca uma vez ao abrir; depois só quando clicar em "Buscar" (antes buscava a cada tecla).
+  const fetched = useRef(false);
   useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
     void fetchJobs();
   }, [fetchJobs]);
 
@@ -89,7 +102,7 @@ export function DiscoverJobs({
           <CardTitle>Vagas agregadas (remoto / internacional)</CardTitle>
           <CardDescription>
             Fontes: {sources.length ? sources.join(", ") : "Remotive, RemoteOK, Arbeitnow"}.
-            Complemento aos portais BR — filtre por stack e salve no rastreador antes de aplicar.
+            Complemento aos portais BR — filtre por stack e salve em “Minhas vagas” antes de aplicar.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -97,7 +110,7 @@ export function DiscoverJobs({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ex: react junior brazil node"
+              placeholder="Ex.: react typescript (em inglês, poucas palavras)"
               onKeyDown={(e) => e.key === "Enter" && void fetchJobs()}
             />
             <Button type="button" onClick={() => void fetchJobs()} disabled={loading}>
@@ -114,8 +127,8 @@ export function DiscoverJobs({
           <ul className="divide-y rounded-lg border">
             {jobs.length === 0 && !loading && (
               <li className="p-4 text-sm text-muted-foreground">
-                Nenhuma vaga com esses termos. Tente &quot;junior&quot;,
-                &quot;frontend&quot;, &quot;full stack&quot; ou remova filtros.
+                Nenhuma vaga com esses termos. Essas fontes exigem todas as palavras:
+                tente uma ou duas (ex.: &quot;react&quot;, &quot;power bi&quot;, &quot;frontend&quot;).
               </li>
             )}
             {jobs.map((job) => (
