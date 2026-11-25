@@ -55,7 +55,7 @@ export function SyncStatusPill({
         state === "syncing" && "bg-white/15 text-white ring-white/25",
         state === "error" && "bg-amber-400/25 text-white ring-amber-200/50 hover:bg-amber-400/35",
         (state === "off" || state === "unavailable") &&
-          "bg-white/10 text-indigo-100 ring-white/20 hover:bg-white/20",
+          "bg-white/10 text-zinc-300 ring-white/20 hover:bg-white/20",
       )}
     >
       <Icon className={cn("size-3.5", state === "syncing" && "animate-spin")} />

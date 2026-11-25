@@ -95,9 +95,9 @@ function formatAge(ageDays: number | null): string {
 }
 
 const AVATAR_COLORS = [
-  "bg-indigo-100 text-indigo-700",
-  "bg-violet-100 text-violet-700",
-  "bg-sky-100 text-sky-700",
+  "bg-teal-100 text-teal-800",
+  "bg-amber-100 text-amber-800",
+  "bg-stone-200 text-stone-700",
   "bg-emerald-100 text-emerald-700",
   "bg-amber-100 text-amber-700",
   "bg-rose-100 text-rose-700",
@@ -118,7 +118,7 @@ function avatarFor(company: string) {
 
 function fitStyle(score: number) {
   if (score >= 70) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-  if (score >= 50) return "bg-indigo-50 text-indigo-700 ring-indigo-200";
+  if (score >= 50) return "bg-teal-50 text-teal-800 ring-teal-200";
   return "bg-slate-50 text-slate-600 ring-slate-200";
 }
 

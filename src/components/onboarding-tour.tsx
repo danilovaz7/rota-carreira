@@ -56,10 +56,10 @@ const STEPS: Step[] = [
     title: "Suas vagas chegam prontas aqui",
     intro:
       "O site procura vagas no LinkedIn, na Gupy e nos sites de carreira das empresas, filtra o que combina com você e mostra tudo numa lista só, da melhor para a pior. Serve para TI e para qualquer outra área.",
-    tone: "from-indigo-500 to-violet-500",
+    tone: "from-teal-800 to-teal-700",
     points: [
       { icon: Search, title: "Para você", text: "As vagas que combinam com o seu perfil, com a nota de encaixe e o motivo." },
-      { icon: ListChecks, title: "Rastreador", text: "Tudo o que você salvou ou já enviou, para não se perder." },
+      { icon: ListChecks, title: "Minhas vagas", text: "Tudo o que você salvou ou já enviou, para não se perder." },
       { icon: CheckCircle2, title: "Meta do dia", text: "Quantas candidaturas você mandou hoje, no topo da página." },
     ],
   },
@@ -69,7 +69,7 @@ const STEPS: Step[] = [
     title: "Monte seu perfil de busca",
     intro:
       "Sem perfil o site não sabe o que procurar. Vá na aba Perfil e preencha o básico. Leva 2 minutos.",
-    tone: "from-sky-500 to-indigo-500",
+    tone: "from-stone-800 to-stone-700",
     points: [
       { icon: Sparkles, title: "Escolha sua área e um modelo", text: "Tecnologia (dev, dados, design) ou outra área (engenharia, administrativo, logística, RH, vendas…). O modelo preenche tudo e você ajusta." },
       { icon: Search, title: "Palavras-chave", text: "Cada item separado por vírgula vira uma busca. Ex.: desenvolvedor react júnior, analista de logística júnior, engenheiro químico." },
@@ -81,7 +81,7 @@ const STEPS: Step[] = [
     eyebrow: "Passo 2",
     title: "Deixe a busca do seu jeito",
     intro: "Ainda na aba Perfil, cada opção muda na hora o que aparece em Para você.",
-    tone: "from-emerald-500 to-teal-500",
+    tone: "from-emerald-800 to-emerald-700",
     points: [
       { icon: MapPin, title: "Onde trabalhar", text: "Remoto, presencial ou híbrido, e em quais regiões ou cidades." },
       { icon: SlidersHorizontal, title: "Nível e filtros", text: "Júnior sempre entra; inclua estágio, pleno ou sênior/gestão. Escolha também a idade máxima das vagas e o encaixe mínimo." },
@@ -106,11 +106,11 @@ const STEPS: Step[] = [
     eyebrow: "Pronto",
     title: "Sua rotina no dia a dia",
     intro: "Depois de configurar, o uso diário é rápido.",
-    tone: "from-violet-500 to-fuchsia-500",
+    tone: "from-zinc-800 to-zinc-700",
     points: [
       { icon: Search, title: "1. Abra Para você", text: "Veja as vagas novas e as de maior encaixe primeiro." },
       { icon: ArrowRight, title: "2. Candidate-se", text: "Abra a vaga, mande o currículo e volte aqui." },
-      { icon: ListChecks, title: "3. Marque “Já enviei”", text: "A vaga vai para o Rastreador e conta na sua meta do dia." },
+      { icon: ListChecks, title: "3. Marque “Já enviei”", text: "A vaga vai para “Minhas vagas” e conta na sua meta do dia." },
     ],
   },
 ];

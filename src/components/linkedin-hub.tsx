@@ -41,7 +41,7 @@ export function LinkedInHub({ profile, compact }: Props) {
             <ul className="list-disc space-y-1 pl-5">
               <li>Crie alerta para &quot;Remoto + Easy Apply&quot; e para &quot;Vagas recentes&quot;.</li>
               <li>Frequência: diária.</li>
-              <li>Quando chegar e-mail, salve a vaga aqui no rastreador antes de aplicar.</li>
+              <li>Quando chegar e-mail, salve a vaga em “Minhas vagas” antes de aplicar.</li>
             </ul>
           </CardContent>
         </Card>
