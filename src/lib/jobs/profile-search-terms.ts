@@ -36,12 +36,19 @@ export function hasTerm(text: string, term: string): boolean {
   return re.test(text);
 }
 
-/** Itens separados por vírgula, ponto e vírgula ou quebra de linha. */
+/** Itens separados por vírgula, ponto e vírgula ou quebra de linha (repetidos saem). */
 export function splitList(text: string): string[] {
+  const seen = new Set<string>();
   return text
     .split(/[,;\n]+/)
     .map((s) => s.trim().replace(/\s+/g, " "))
-    .filter(Boolean);
+    .filter((s) => {
+      if (!s) return false;
+      const key = normalizeText(s);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 /** Palavras de nível: ajudam na busca, mas não dizem a área da vaga. */
