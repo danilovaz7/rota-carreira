@@ -109,7 +109,7 @@ export function JobHuntApp() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:max-w-5xl">
       <header className="rounded-2xl bg-zinc-900 p-5 text-white sm:p-7">
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <BriefcaseBusiness className="size-4" />
               Central de Emprego

@@ -571,7 +571,7 @@ export function ForYouJobs({
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-semibold leading-snug hover:text-primary"
+                        className="min-w-0 break-words font-semibold leading-snug hover:text-primary"
                       >
                         {job.title}
                       </a>
@@ -627,12 +627,13 @@ export function ForYouJobs({
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2">
+                {/* No celular: "Abrir vaga" ocupa a linha de cima e as ações vão para a de baixo. */}
+                <div className="mt-4 flex flex-wrap gap-2">
                   <a
                     href={job.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(buttonVariants({ size: "lg" }), "flex-1 gap-2")}
+                    className={cn(buttonVariants({ size: "lg" }), "w-full gap-2 sm:w-auto sm:flex-1")}
                   >
                     Abrir vaga
                     <ExternalLink className="size-4" />
@@ -642,7 +643,7 @@ export function ForYouJobs({
                       type="button"
                       variant="outline"
                       size="lg"
-                      className="gap-2"
+                      className="flex-1 gap-2 sm:flex-none"
                       onClick={() => restore(job)}
                     >
                       <Undo2 className="size-4" />
@@ -653,7 +654,7 @@ export function ForYouJobs({
                       type="button"
                       variant="outline"
                       size="lg"
-                      className="gap-2"
+                      className="flex-1 gap-2 sm:flex-none"
                       onClick={() => undoSent(job)}
                     >
                       <Undo2 className="size-4" />
@@ -665,7 +666,7 @@ export function ForYouJobs({
                         type="button"
                         variant="secondary"
                         size="lg"
-                        className="gap-2"
+                        className="flex-1 gap-2 sm:flex-none"
                         onClick={() => markSent(job)}
                       >
                         <Check className="size-4" />
