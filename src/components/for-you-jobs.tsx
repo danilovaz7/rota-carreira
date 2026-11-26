@@ -16,6 +16,7 @@ import {
   RefreshCw,
   SearchX,
   Sparkles,
+  Trash2,
   Undo2,
   Wifi,
 } from "lucide-react";
@@ -186,6 +187,7 @@ export function ForYouJobs({
   const [onlyInternships, setOnlyInternships] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("fit");
   const [showSent, setShowSent] = useState(false);
+  const [showDismissed, setShowDismissed] = useState(false);
 
   const sentUrls = useMemo(
     () =>
@@ -195,9 +197,26 @@ export function ForYouJobs({
     [applications],
   );
 
+  const dismissedUrls = useMemo(
+    () => new Set(applications.filter((a) => a.status === "dismissed").map((a) => a.url)),
+    [applications],
+  );
+
   const hiddenSentCount = useMemo(
     () => (data?.jobs ?? []).filter((j) => sentUrls.has(j.url)).length,
     [data, sentUrls],
+  );
+
+  const hiddenDismissedCount = useMemo(
+    () => (data?.jobs ?? []).filter((j) => dismissedUrls.has(j.url)).length,
+    [data, dismissedUrls],
+  );
+
+  /** Vaga escondida da lista: enviada ou descartada (a não ser que o filtro mostre). */
+  const isHidden = useCallback(
+    (url: string) =>
+      (!showSent && sentUrls.has(url)) || (!showDismissed && dismissedUrls.has(url)),
+    [showSent, sentUrls, showDismissed, dismissedUrls],
   );
 
   const onlyInternshipFilter = profile.includeInternships && onlyInternships;
@@ -205,7 +224,8 @@ export function ForYouJobs({
   const visibleJobs = useMemo(() => {
     const jobs = (data?.jobs ?? []).filter(
       (j) =>
-        (showSent || !sentUrls.has(j.url)) &&
+        !isHidden(j.url) &&
+        (!showDismissed || dismissedUrls.has(j.url)) &&
         (workplaceFilter === "all" || j.workplace === workplaceFilter) &&
         (originFilter === "all" || originOf(j) === originFilter) &&
         (!onlyNew || j.isNew) &&
@@ -217,24 +237,24 @@ export function ForYouJobs({
       );
     }
     return jobs;
-  }, [data, workplaceFilter, originFilter, onlyNew, onlyInternshipFilter, sortMode, showSent, sentUrls]);
+  }, [data, workplaceFilter, originFilter, onlyNew, onlyInternshipFilter, sortMode, isHidden, showDismissed, dismissedUrls]);
 
   const internshipCount = useMemo(() => {
     if (!profile.includeInternships) return 0;
     return (data?.jobs ?? []).filter(
-      (j) => (showSent || !sentUrls.has(j.url)) && isInternshipJob(j),
+      (j) => !isHidden(j.url) && isInternshipJob(j),
     ).length;
-  }, [data, profile.includeInternships, showSent, sentUrls]);
+  }, [data, profile.includeInternships, isHidden]);
 
   const originCounts = useMemo(() => {
     const counts: Partial<Record<Exclude<OriginFilter, "all">, number>> = {};
     for (const j of data?.jobs ?? []) {
-      if (!showSent && sentUrls.has(j.url)) continue;
+      if (isHidden(j.url)) continue;
       const o = originOf(j);
       counts[o] = (counts[o] ?? 0) + 1;
     }
     return counts;
-  }, [data, showSent, sentUrls]);
+  }, [data, isHidden]);
 
   const newCount = useMemo(
     () => (data?.jobs ?? []).filter((j) => j.isNew).length,
@@ -318,6 +338,44 @@ export function ForYouJobs({
     ]);
   }
 
+  /** Tira a vaga da lista. Ela fica em "Minhas vagas" como Descartada e não volta ao atualizar. */
+  function dismiss(job: ScoredJob) {
+    const existing = applications.find((a) => a.url === job.url);
+    if (existing) {
+      persist(
+        applications.map((a) =>
+          a.id === existing.id ? { ...a, status: "dismissed", dismissedFrom: a.status } : a,
+        ),
+      );
+      return;
+    }
+    persist([
+      {
+        id: newApplicationId(),
+        company: job.company,
+        title: job.title,
+        url: job.url,
+        source: job.source,
+        status: "dismissed",
+        notes: "",
+        jobDescription: job.description ?? "",
+        createdAt: new Date().toISOString(),
+      },
+      ...applications,
+    ]);
+  }
+
+  /** Devolve a vaga: volta ao status anterior ou some de "Minhas vagas" se só existia por ter sido descartada. */
+  function restore(job: ScoredJob) {
+    persist(
+      applications.flatMap((a) => {
+        if (a.url !== job.url || a.status !== "dismissed") return [a];
+        if (!a.dismissedFrom) return [];
+        return [{ ...a, status: a.dismissedFrom, dismissedFrom: undefined }];
+      }),
+    );
+  }
+
   function undoSent(job: ScoredJob) {
     persist(
       applications.map((a) =>
@@ -352,7 +410,7 @@ export function ForYouJobs({
       {data && !loading && (
         <div className="grid grid-cols-3 gap-2 sm:max-w-md">
           {[
-            { label: "Vagas", value: data.count - hiddenSentCount },
+            { label: "Vagas", value: data.count - hiddenSentCount - hiddenDismissedCount },
             { label: "Novas", value: newCount },
             { label: "Analisadas", value: data.scanned.toLocaleString("pt-BR") },
           ].map((s) => (
@@ -408,6 +466,12 @@ export function ForYouJobs({
             <Chip active={showSent} onClick={() => setShowSent((v) => !v)}>
               {showSent ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
               Enviadas ({hiddenSentCount})
+            </Chip>
+          )}
+          {hiddenDismissedCount > 0 && (
+            <Chip active={showDismissed} onClick={() => setShowDismissed((v) => !v)}>
+              <Trash2 className="size-3.5" />
+              Descartadas ({hiddenDismissedCount})
             </Chip>
           )}
         </div>
@@ -479,14 +543,15 @@ export function ForYouJobs({
         <ul className="space-y-3">
           {visibleJobs.map((job) => {
             const sent = sentUrls.has(job.url);
-            const saved = isSaved(job.url);
+            const dismissed = dismissedUrls.has(job.url);
+            const saved = isSaved(job.url) && !dismissed;
             const avatar = avatarFor(job.company);
             return (
               <li
                 key={job.id}
                 className={cn(
                   "group rounded-2xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md",
-                  sent && "opacity-60",
+                  (sent || dismissed) && "opacity-60",
                 )}
               >
                 <div className="flex gap-3">
@@ -572,7 +637,18 @@ export function ForYouJobs({
                     Abrir vaga
                     <ExternalLink className="size-4" />
                   </a>
-                  {sent ? (
+                  {dismissed ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="gap-2"
+                      onClick={() => restore(job)}
+                    >
+                      <Undo2 className="size-4" />
+                      Restaurar
+                    </Button>
+                  ) : sent ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -609,6 +685,17 @@ export function ForYouJobs({
                         ) : (
                           <Bookmark className="size-4" />
                         )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-lg"
+                        onClick={() => dismiss(job)}
+                        aria-label="Descartar vaga"
+                        title="Descartar: some da lista e não volta ao atualizar"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
                       </Button>
                     </>
                   )}

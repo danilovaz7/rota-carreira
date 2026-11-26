@@ -44,6 +44,7 @@ const STATUS_RANK: Record<Application["status"], number> = {
   rejected: 2,
   interview: 3,
   offer: 4,
+  dismissed: 1,
 };
 
 /** Os dois aparelhos mudaram: junta as listas; o snapshot mais novo vence, mas "enviada" nunca volta a "salva". */

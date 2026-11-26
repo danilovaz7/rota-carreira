@@ -3,7 +3,9 @@ export type ApplicationStatus =
   | "applied"
   | "interview"
   | "offer"
-  | "rejected";
+  | "rejected"
+  /** Você tirou a vaga da lista (não interessa, já fechou, salário…). */
+  | "dismissed";
 
 /** Onde o "Para você" procura vagas. */
 export type JobSourceToggles = {
@@ -66,6 +68,8 @@ export type Application = {
   jobDescription: string;
   createdAt: string;
   appliedAt?: string;
+  /** Status antes de descartar, para o "Restaurar" devolver como estava. */
+  dismissedFrom?: ApplicationStatus;
 };
 
 /** Modelos prontos para quem está começando: preenchem título, palavras-chave e skills. */
@@ -216,4 +220,5 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   interview: "Entrevista",
   offer: "Proposta",
   rejected: "Recusada",
+  dismissed: "Descartada",
 };

@@ -57,8 +57,9 @@ export function ApplicationTracker({
     [applications],
   );
 
-  const visible = sorted.filter(
-    (a) => filter === "all" || a.status === filter,
+  // Descartadas só aparecem quando você filtra por elas.
+  const visible = sorted.filter((a) =>
+    filter === "all" ? a.status !== "dismissed" : a.status === filter,
   );
 
   function persist(next: Application[]) {
@@ -118,8 +119,9 @@ export function ApplicationTracker({
         <CardHeader>
           <CardTitle>Minhas vagas</CardTitle>
           <CardDescription>
-            {applications.length} no total · {stats.applied ?? 0} aplicadas ·{" "}
+            {applications.length - (stats.dismissed ?? 0)} no total · {stats.applied ?? 0} aplicadas ·{" "}
             {stats.interview ?? 0} entrevistas
+            {stats.dismissed ? ` · ${stats.dismissed} descartadas` : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

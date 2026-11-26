@@ -99,7 +99,9 @@ export function JobHuntApp() {
   const goal = profile.dailyApplyGoal || 5;
   const progress = Math.min(100, Math.round((appliedToday / goal) * 100));
 
-  const sentTotal = applications.filter((a) => a.status !== "saved").length;
+  const sentTotal = applications.filter(
+    (a) => a.status !== "saved" && a.status !== "dismissed",
+  ).length;
   const firstName = profile.fullName.trim().split(/\s+/)[0];
   const syncActive = sync.code !== null && sync.state !== "off";
 
