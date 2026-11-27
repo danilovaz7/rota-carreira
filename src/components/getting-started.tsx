@@ -113,19 +113,19 @@ export function GettingStarted({
         />
       </div>
 
-      <ol className="space-y-2">
+      <ol className="divide-y rounded-xl border">
         {steps.map((step, i) => {
           const StepIcon = step.icon;
           return (
             <li
               key={step.title}
               className={cn(
-                "flex flex-wrap items-start gap-3 rounded-xl border p-3 sm:flex-nowrap sm:items-center",
-                step.done ? "bg-emerald-50/60 dark:bg-emerald-950/20" : "bg-background",
+                "flex flex-wrap items-start gap-3 p-3 sm:flex-nowrap sm:items-center",
+                !step.done && "bg-background",
               )}
             >
               {step.done ? (
-                <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+                <CheckCircle2 className="size-5 shrink-0 text-primary" />
               ) : (
                 <Circle className="size-5 shrink-0 text-muted-foreground/50" />
               )}
@@ -143,7 +143,7 @@ export function GettingStarted({
                 {!step.done && <p className="text-xs text-muted-foreground">{step.text}</p>}
               </div>
               {!step.done && step.action && (
-                <Button type="button" size="sm" className="w-full sm:w-auto" onClick={step.action.onClick}>
+                <Button type="button" className="h-10 w-full px-4 sm:h-8 sm:w-auto" onClick={step.action.onClick}>
                   {step.action.label}
                 </Button>
               )}

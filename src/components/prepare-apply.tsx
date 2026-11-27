@@ -43,17 +43,26 @@ export function PrepareApply({
   const checklist = buildEasyApplyChecklist();
   const message = buildOutreachMessage(
     profile,
-    company || "empresa",
-    title || "vaga",
+    company.trim() || "[empresa]",
+    title.trim() || "[cargo]",
     jobDescription,
   );
-  const shortNote = buildLinkedInNoteShort(profile, title || "vaga");
+  const shortNote = buildLinkedInNoteShort(profile, title.trim() || "[cargo]");
+  const [copied, setCopied] = useState<"long" | "short" | null>(null);
+  const canMark = Boolean(title.trim() || url.trim());
 
-  async function copy(text: string) {
-    await navigator.clipboard.writeText(text);
+  async function copy(text: string, which: "long" | "short") {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(which);
+      window.setTimeout(() => setCopied(null), 1800);
+    } catch {
+      // sem permissão de área de transferência: o texto continua selecionável na caixa
+    }
   }
 
   function markApplied() {
+    if (!canMark) return;
     const app: Application = {
       id: newApplicationId(),
       company: company.trim() || "—",
@@ -69,6 +78,10 @@ export function PrepareApply({
     const next = [app, ...applications];
     onApplicationsChange(next);
     saveApplications(next);
+    setCompany("");
+    setTitle("");
+    setUrl("");
+    setJobDescription("");
   }
 
   return (
@@ -153,11 +166,17 @@ export function PrepareApply({
             </ul>
             <Button
               type="button"
-              className="mt-4 w-full sm:w-auto"
+              className="mt-4 h-10 w-full px-4 sm:w-auto"
               onClick={markApplied}
+              disabled={!canMark}
             >
               Marcar como aplicada
             </Button>
+            {!canMark && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Preencha pelo menos o cargo ou o link para registrar.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -170,12 +189,12 @@ export function PrepareApply({
           </CardHeader>
           <CardContent className="space-y-2">
             <Textarea readOnly rows={8} value={message} className="text-sm" />
-            <Button type="button" variant="outline" onClick={() => void copy(message)}>
-              Copiar mensagem longa
+            <Button type="button" variant="outline" onClick={() => void copy(message, "long")}>
+              {copied === "long" ? "Copiado ✓" : "Copiar mensagem longa"}
             </Button>
             <Textarea readOnly rows={3} value={shortNote} className="text-sm" />
-            <Button type="button" variant="outline" onClick={() => void copy(shortNote)}>
-              Copiar nota curta
+            <Button type="button" variant="outline" onClick={() => void copy(shortNote, "short")}>
+              {copied === "short" ? "Copiado ✓" : "Copiar nota curta"}
             </Button>
           </CardContent>
         </Card>
