@@ -50,12 +50,12 @@ export function SyncStatusPill({
       onClick={onOpenSettings}
       title="Configurar sincronização entre celular e PC"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 backdrop-blur transition-colors",
-        state === "ok" && "bg-emerald-400/20 text-white ring-emerald-200/40 hover:bg-emerald-400/30",
-        state === "syncing" && "bg-white/15 text-white ring-white/25",
-        state === "error" && "bg-amber-400/25 text-white ring-amber-200/50 hover:bg-amber-400/35",
+        "inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ring-1 transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+        state === "ok" && "bg-emerald-50 text-emerald-800 ring-emerald-200 hover:bg-emerald-100",
+        state === "syncing" && "bg-muted text-foreground ring-border",
+        state === "error" && "bg-amber-50 text-amber-800 ring-amber-200 hover:bg-amber-100",
         (state === "off" || state === "unavailable") &&
-          "bg-white/10 text-zinc-300 ring-white/20 hover:bg-white/20",
+          "bg-card text-muted-foreground ring-border hover:bg-muted hover:text-foreground",
       )}
     >
       <Icon className={cn("size-3.5", state === "syncing" && "animate-spin")} />

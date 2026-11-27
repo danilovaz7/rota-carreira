@@ -95,32 +95,26 @@ function formatAge(ageDays: number | null): string {
   return `Há ${ageDays} dias`;
 }
 
-const AVATAR_COLORS = [
-  "bg-teal-100 text-teal-800",
-  "bg-amber-100 text-amber-800",
-  "bg-stone-200 text-stone-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-teal-100 text-teal-700",
-];
-
-function avatarFor(company: string) {
+function initialsFor(company: string) {
   const clean = company.replace(/[^\p{L}\p{N} ]/gu, "").trim() || "?";
-  const initials = clean
+  return clean
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join("");
-  let hash = 0;
-  for (const ch of company) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return { initials, color: AVATAR_COLORS[hash % AVATAR_COLORS.length] };
 }
 
 function fitStyle(score: number) {
-  if (score >= 70) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-  if (score >= 50) return "bg-teal-50 text-teal-800 ring-teal-200";
-  return "bg-slate-50 text-slate-600 ring-slate-200";
+  if (score >= 70) return "bg-primary text-primary-foreground";
+  if (score >= 50) return "bg-secondary text-secondary-foreground";
+  return "bg-muted text-muted-foreground";
+}
+
+/** Motivos que já aparecem em outro lugar do card (selo "Nova", local, fonte) não se repetem. */
+const REASON_SKIP = /^(Vaga nova|Remoto|Presencial\/híbrido|Site d)/;
+
+function topReasons(job: ScoredJob): string[] {
+  return job.reasons.filter((r) => !REASON_SKIP.test(r)).slice(0, 3);
 }
 
 function Chip({
@@ -386,41 +380,61 @@ export function ForYouJobs({
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
           <h2 className="text-xl font-semibold tracking-tight">Vagas para você</h2>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {describeSearch(profile)}
-            {data?.filters?.searchTerms?.length ? (
-              <>
-                {" "}
-                <span className="text-xs">
-                  Buscando: {data.filters.searchTerms.join(" · ")}
-                </span>
-              </>
-            ) : null}
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {loading
+              ? "Procurando vagas…"
+              : data
+                ? (
+                    <>
+                      <span className="font-medium text-foreground tabular-nums">
+                        {data.count - hiddenSentCount - hiddenDismissedCount}
+                      </span>{" "}
+                      vagas
+                      {newCount > 0 && (
+                        <>
+                          {" · "}
+                          <span className="font-medium text-foreground tabular-nums">{newCount}</span>{" "}
+                          novas
+                        </>
+                      )}
+                      {" · "}
+                      {data.scanned.toLocaleString("pt-BR")} analisadas
+                    </>
+                  )
+                : "Nenhuma busca ainda"}
           </p>
         </div>
-        <Button type="button" onClick={() => void load()} disabled={loading} className="gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void load()}
+          disabled={loading}
+          className="h-10 shrink-0 gap-2 px-3"
+        >
           <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-          {loading ? "Buscando…" : "Atualizar"}
+          <span className="max-sm:sr-only">{loading ? "Buscando…" : "Atualizar"}</span>
         </Button>
       </div>
 
-      {data && !loading && (
-        <div className="grid grid-cols-3 gap-2 sm:max-w-md">
-          {[
-            { label: "Vagas", value: data.count - hiddenSentCount - hiddenDismissedCount },
-            { label: "Novas", value: newCount },
-            { label: "Analisadas", value: data.scanned.toLocaleString("pt-BR") },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border bg-card px-3 py-2 text-center shadow-xs">
-              <p className="text-lg font-semibold tabular-nums">{s.value}</p>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      <details className="group rounded-xl border bg-card px-4 py-3 text-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium [&::-webkit-details-marker]:hidden">
+          Como estou buscando
+          <span className="text-xs text-muted-foreground group-open:hidden">ver critérios</span>
+        </summary>
+        <p className="mt-2 leading-relaxed text-muted-foreground">{describeSearch(profile)}</p>
+        {data?.filters?.searchTerms?.length ? (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {data.filters.searchTerms.map((t) => (
+              <li key={t} className="rounded-md bg-muted px-2 py-0.5 text-xs">
+                {t}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </details>
 
       <div className="sticky top-0 z-10 -mx-4 bg-background/85 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-xl sm:px-0">
         <div className="scrollbar-none flex gap-2 overflow-x-auto">
@@ -545,51 +559,48 @@ export function ForYouJobs({
             const sent = sentUrls.has(job.url);
             const dismissed = dismissedUrls.has(job.url);
             const saved = isSaved(job.url) && !dismissed;
-            const avatar = avatarFor(job.company);
+            const reasons = topReasons(job);
             return (
               <li
                 key={job.id}
                 className={cn(
-                  "group rounded-2xl border bg-card p-4 shadow-xs transition-shadow hover:shadow-md",
+                  "rounded-2xl border bg-card p-4 transition-[box-shadow,opacity] duration-200 hover:shadow-sm",
                   (sent || dismissed) && "opacity-60",
                 )}
               >
                 <div className="flex gap-3">
                   <div
-                    className={cn(
-                      "flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-semibold",
-                      avatar.color,
-                    )}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-foreground/70"
                     aria-hidden
                   >
-                    {avatar.initials}
+                    {initialsFor(job.company)}
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
                       <a
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="min-w-0 break-words font-semibold leading-snug hover:text-primary"
+                        className="min-w-0 break-words text-[15px] font-semibold leading-snug underline-offset-2 hover:underline focus-visible:rounded focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                       >
                         {job.title}
                       </a>
                       <span
                         className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1",
+                          "shrink-0 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums",
                           fitStyle(job.score),
                         )}
-                        title="Encaixe com seu currículo"
+                        title="Encaixe com o seu perfil"
                       >
                         {job.score}%
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Building2 className="size-3.5" />
-                        {job.company}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-muted-foreground">
+                      <span className="inline-flex min-w-0 items-center gap-1">
+                        <Building2 className="size-3.5 shrink-0" />
+                        <span className="truncate">{job.company}</span>
                       </span>
                       <span className="inline-flex items-center gap-1">
                         {job.workplace === "remote" ? (
@@ -605,45 +616,60 @@ export function ForYouJobs({
                         <Clock className="size-3.5" />
                         {formatAge(job.ageDays)}
                       </span>
-                    </div>
+                    </p>
 
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {reasons.length > 0 && (
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        {reasons.join(" · ")}
+                      </p>
+                    )}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {sent && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-800">
                           <Check className="size-3" />
                           Enviada
                         </span>
                       )}
+                      {dismissed && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          <Trash2 className="size-3" />
+                          Descartada
+                        </span>
+                      )}
                       {job.isNew && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800">
                           <Sparkles className="size-3" />
                           Nova
                         </span>
                       )}
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      <span className="rounded-md border px-1.5 py-0.5 text-xs text-muted-foreground">
                         {sourceLabel(job)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* No celular: "Abrir vaga" ocupa a linha de cima e as ações vão para a de baixo. */}
-                <div className="mt-4 flex flex-wrap gap-2">
+                {/* Uma linha só: no celular os botões dividem a largura (alvos de 44px). */}
+                <div className="mt-3 flex gap-2 sm:pl-[3.25rem]">
                   <a
                     href={job.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(buttonVariants({ size: "lg" }), "w-full gap-2 sm:w-auto sm:flex-1")}
+                    className={cn(
+                      buttonVariants(),
+                      "h-11 min-w-0 flex-1 gap-1.5 px-3 sm:h-9 sm:flex-none sm:px-4",
+                    )}
                   >
-                    Abrir vaga
+                    <span className="sm:hidden">Abrir</span>
+                    <span className="max-sm:hidden">Abrir vaga</span>
                     <ExternalLink className="size-4" />
                   </a>
                   {dismissed ? (
                     <Button
                       type="button"
                       variant="outline"
-                      size="lg"
-                      className="flex-1 gap-2 sm:flex-none"
+                      className="h-11 min-w-0 flex-1 gap-1.5 sm:h-9 sm:flex-none sm:px-4"
                       onClick={() => restore(job)}
                     >
                       <Undo2 className="size-4" />
@@ -653,8 +679,7 @@ export function ForYouJobs({
                     <Button
                       type="button"
                       variant="outline"
-                      size="lg"
-                      className="flex-1 gap-2 sm:flex-none"
+                      className="h-11 min-w-0 flex-1 gap-1.5 sm:h-9 sm:flex-none sm:px-4"
                       onClick={() => undoSent(job)}
                     >
                       <Undo2 className="size-4" />
@@ -665,8 +690,7 @@ export function ForYouJobs({
                       <Button
                         type="button"
                         variant="secondary"
-                        size="lg"
-                        className="flex-1 gap-2 sm:flex-none"
+                        className="h-11 min-w-0 flex-1 gap-1.5 sm:h-9 sm:flex-none sm:px-4"
                         onClick={() => markSent(job)}
                       >
                         <Check className="size-4" />
@@ -675,7 +699,7 @@ export function ForYouJobs({
                       <Button
                         type="button"
                         variant="outline"
-                        size="icon-lg"
+                        className="size-11 shrink-0 p-0 sm:size-9"
                         disabled={saved}
                         onClick={() => saveJob(job)}
                         aria-label={saved ? "Vaga salva" : "Salvar para depois"}
@@ -690,11 +714,10 @@ export function ForYouJobs({
                       <Button
                         type="button"
                         variant="outline"
-                        size="icon-lg"
+                        className="size-11 shrink-0 p-0 text-muted-foreground hover:text-destructive sm:size-9"
                         onClick={() => dismiss(job)}
                         aria-label="Descartar vaga"
                         title="Descartar: some da lista e não volta ao atualizar"
-                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="size-4" />
                       </Button>
